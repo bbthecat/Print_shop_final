@@ -1,0 +1,71 @@
+@startuml use-case
+!pragma layout smetana
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor #EEF4FB
+  BorderColor #2E5C8A
+}
+skinparam actorBorderColor #1F3A5F
+left to right direction
+
+title PrintFlow — Use Case Diagram
+
+actor "ลูกค้า\n(Customer)" as Customer
+actor "พนักงาน\n(Staff)" as Staff
+actor "ผู้ดูแลระบบ\n(Admin)" as Admin
+
+Admin -|> Staff
+
+rectangle "PrintFlow" {
+  usecase "UC-01 สมัครสมาชิก" as UC01
+  usecase "UC-02 เข้าสู่ระบบ / ออกจากระบบ" as UC02
+  usecase "UC-03 จัดการข้อมูลส่วนตัว" as UC03
+  usecase "UC-04 ดูรายการบริการพิมพ์" as UC04
+  usecase "UC-05 สร้างคำสั่งพิมพ์" as UC05
+  usecase "เลือกบริการเสริม" as UC05a
+  usecase "อัปโหลดไฟล์งาน" as UC05b
+  usecase "ใช้โค้ดโปรโมชั่น" as UC05c
+  usecase "ตรวจสอบคำสั่งพิมพ์\n(Validation Chain)" as UC05d
+  usecase "คำนวณราคา\n(Pricing Strategy)" as UC05e
+  usecase "UC-06 ติดตามสถานะ / ดูประวัติคำสั่งพิมพ์" as UC06
+  usecase "UC-07 ยกเลิกคำสั่งพิมพ์ (PENDING)" as UC07
+  usecase "UC-08 ดูการแจ้งเตือน" as UC08
+  usecase "UC-09 ดูและจัดการคำสั่งพิมพ์ทั้งหมด" as UC09
+  usecase "UC-10 เปลี่ยนสถานะคำสั่งพิมพ์\n(State Pattern)" as UC10
+  usecase "บันทึกประวัติสถานะ + แจ้งเตือน\n(Observer)" as UC10a
+  usecase "UC-11 บันทึกการชำระเงิน" as UC11
+  usecase "UC-12 จัดการบริการ / บริการเสริม / โปรโมชั่น" as UC12
+  usecase "UC-13 จัดการบัญชีผู้ใช้" as UC13
+  usecase "UC-14 ดูรายงานสรุป" as UC14
+}
+
+Customer --> UC01
+Customer --> UC02
+Customer --> UC03
+Customer --> UC04
+Customer --> UC05
+Customer --> UC06
+Customer --> UC07
+Customer --> UC08
+
+Staff --> UC02
+Staff --> UC09
+Staff --> UC10
+Staff --> UC11
+Staff --> UC08
+
+Admin --> UC12
+Admin --> UC13
+Admin --> UC14
+
+UC05 ..> UC05d : <<include>>
+UC05 ..> UC05e : <<include>>
+UC05 ..> UC05b : <<include>>
+UC05a ..> UC05 : <<extend>>
+UC05c ..> UC05 : <<extend>>
+UC10 ..> UC10a : <<include>>
+UC07 ..> UC10a : <<include>>
+
+@enduml
