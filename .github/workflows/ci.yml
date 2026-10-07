@@ -20,13 +20,14 @@ jobs:
         distribution: 'temurin'
         cache: maven
         cache-dependency-path: code/pom.xml
-    - name: Build with Maven
+    - name: Build and test with Maven
       run: cd code && mvn -B clean verify
     - name: Generate Test Report
-      run: cd code && mvn surefire-report:report
+      if: always()
+      run: cd code && mvn -B surefire-report:report-only
     - name: Upload Test Report
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: test-report
-        path: code/target/site/surefire-report.html
+        path: code/target/reports/
