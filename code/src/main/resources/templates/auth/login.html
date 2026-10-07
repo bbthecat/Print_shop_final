@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('เข้าสู่ระบบ')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container narrow">
+    <section class="card">
+        <h1>เข้าสู่ระบบ</h1>
+
+        <div th:if="${param.registered}" class="alert alert-success">สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ</div>
+        <div th:if="${param.logout}" class="alert alert-success">ออกจากระบบแล้ว</div>
+        <div th:if="${param.error}" class="alert alert-error">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง หรือบัญชีถูกปิดใช้งาน</div>
+
+        <form th:action="@{/login}" method="post">
+            <div class="form-group">
+                <label for="username">ชื่อผู้ใช้</label>
+                <input id="username" name="username" type="text" autocomplete="username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">รหัสผ่าน</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn btn-block">เข้าสู่ระบบ</button>
+        </form>
+
+        <p class="text-center muted">ยังไม่มีบัญชี? <a th:href="@{/register}">สมัครสมาชิก</a></p>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
