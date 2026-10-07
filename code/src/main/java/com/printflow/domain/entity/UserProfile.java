@@ -1,4 +1,4 @@
-package com.printflow.entity;
+package com.printflow.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;

@@ -1,6 +1,6 @@
-package com.printflow.entity;
+package com.printflow.domain.entity;
 
-import com.printflow.enums.Role;
+import com.printflow.domain.enums.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

@@ -1,17 +1,14 @@
-FROM eclipse-temurin:17-jdk-jammy AS build
+FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /workspace/app
 
-COPY mvnw .
-COPY .mvn .mvn
 COPY pom.xml .
-COPY src src
+RUN mvn -B dependency:go-offline
 
-RUN ./mvnw install -DskipTests
+COPY src src
+RUN mvn -B package -DskipTests
 
 FROM eclipse-temurin:17-jre-jammy
-VOLUME /tmp
-ARG DEPENDENCY=/workspace/app/target
-COPY --from=build ${DEPENDENCY}/*.jar app.jar
+COPY --from=build /workspace/app/target/*.jar app.jar
 ENV PORT=8080
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","/app.jar"]
