@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('หน้าแรก')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <section class="card hero">
+        <h1>PrintFlow</h1>
+        <p>ระบบจัดการร้านรับพิมพ์เอกสารและบริการงานพิมพ์ สั่งพิมพ์ ติดตามสถานะ และชำระเงินได้ในที่เดียว</p>
+        <div sec:authorize="isAnonymous()">
+            <a class="btn" th:href="@{/register}">สมัครสมาชิก</a>
+            <a class="btn btn-secondary" th:href="@{/login}">เข้าสู่ระบบ</a>
+        </div>
+        <p sec:authorize="isAuthenticated()">
+            ยินดีต้อนรับ <strong sec:authentication="name">username</strong>
+        </p>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
