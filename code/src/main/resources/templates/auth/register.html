@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('สมัครสมาชิก')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container narrow">
+    <section class="card">
+        <h1>สมัครสมาชิก</h1>
+
+        <div th:replace="~{fragments/layout :: flash}"></div>
+
+        <form th:action="@{/register}" th:object="${form}" method="post" novalidate>
+            <div class="form-group">
+                <label for="username">ชื่อผู้ใช้</label>
+                <input th:field="*{username}" type="text" autocomplete="username"
+                       th:classappend="${#fields.hasErrors('username')} ? 'invalid'">
+                <div class="field-error" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">อีเมล</label>
+                <input th:field="*{email}" type="email" autocomplete="email"
+                       th:classappend="${#fields.hasErrors('email')} ? 'invalid'">
+                <div class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="firstName">ชื่อ</label>
+                    <input th:field="*{firstName}" type="text"
+                           th:classappend="${#fields.hasErrors('firstName')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></div>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">นามสกุล</label>
+                    <input th:field="*{lastName}" type="text"
+                           th:classappend="${#fields.hasErrors('lastName')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="phoneNumber">เบอร์โทร (ไม่บังคับ)</label>
+                <input th:field="*{phoneNumber}" type="tel">
+                <div class="field-error" th:if="${#fields.hasErrors('phoneNumber')}" th:errors="*{phoneNumber}"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="address">ที่อยู่ (ไม่บังคับ)</label>
+                <textarea th:field="*{address}" rows="2"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="password">รหัสผ่าน</label>
+                <input th:field="*{password}" type="password" autocomplete="new-password"
+                       th:classappend="${#fields.hasErrors('password')} ? 'invalid'">
+                <div class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">ยืนยันรหัสผ่าน</label>
+                <input th:field="*{confirmPassword}" type="password" autocomplete="new-password"
+                       th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'invalid'">
+                <div class="field-error" th:if="${#fields.hasErrors('passwordConfirmed')}"
+                     th:errors="*{passwordConfirmed}"></div>
+            </div>
+
+            <button type="submit" class="btn btn-block">สมัครสมาชิก</button>
+        </form>
+
+        <p class="text-center muted">มีบัญชีแล้ว? <a th:href="@{/login}">เข้าสู่ระบบ</a></p>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
