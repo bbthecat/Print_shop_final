@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('จัดการโปรโมชัน (Admin)')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 style="margin: 0;">จัดการโปรโมชัน (Admin)</h1>
+        <div>
+            <a th:href="@{/admin/services}" class="btn btn-secondary">← จัดการบริการงานพิมพ์</a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <!-- ฟอร์มสร้างโปรโมชันใหม่ -->
+    <details class="card" th:open="${openForm}" style="margin-bottom: 30px;">
+        <summary><strong>+ เพิ่มโค้ดโปรโมชันใหม่</strong></summary>
+        <form th:action="@{/admin/promotions}" th:object="${form}" method="post" style="margin-top: 16px;">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="code">รหัสโปรโมชัน (Code)</label>
+                    <input th:field="*{code}" type="text" placeholder="เช่น SUMMER20, DISCOUNT50"
+                           style="text-transform: uppercase;"
+                           th:classappend="${#fields.hasErrors('code')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('code')}" th:errors="*{code}"></div>
+                </div>
+                <div class="form-group">
+                    <label for="discountType">ประเภทส่วนลด</label>
+                    <select th:field="*{discountType}">
+                        <option value="PERCENTAGE">PERCENTAGE (เปอร์เซ็นต์ %)</option>
+                        <option value="FIXED_AMOUNT">FIXED_AMOUNT (จำนวนเงินคงที่)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="discountValue">มูลค่าส่วนลด (Value)</label>
+                    <input th:field="*{discountValue}" type="number" step="0.01" placeholder="เช่น 10 (สำหรับ 10%) หรือ 50.00"
+                           th:classappend="${#fields.hasErrors('discountValue')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('discountValue')}" th:errors="*{discountValue}"></div>
+                </div>
+                <div class="form-group">
+                    <label for="minOrderAmount">ยอดสั่งซื้อขั้นต่ำ (บาท)</label>
+                    <input th:field="*{minOrderAmount}" type="number" step="0.01" placeholder="0.00"
+                           th:classappend="${#fields.hasErrors('minOrderAmount')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('minOrderAmount')}" th:errors="*{minOrderAmount}"></div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="startDate">วันเริ่มต้นใช้งาน</label>
+                    <input th:field="*{startDate}" type="datetime-local"
+                           th:classappend="${#fields.hasErrors('startDate')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('startDate')}" th:errors="*{startDate}"></div>
+                </div>
+                <div class="form-group">
+                    <label for="endDate">วันสิ้นสุดใช้งาน</label>
+                    <input th:field="*{endDate}" type="datetime-local"
+                           th:classappend="${#fields.hasErrors('endDate')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('endDate')}" th:errors="*{endDate}"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">รายละเอียดโปรโมชัน</label>
+                <input th:field="*{description}" type="text" placeholder="เช่น ส่วนลดพิเศษช่วงเปิดเทอม">
+            </div>
+
+            <div style="margin-top: 12px;">
+                <button type="submit" class="btn">บันทึกโปรโมชัน</button>
+            </div>
+        </form>
+    </details>
+
+    <!-- ตารางแสดงรายการโปรโมชันปัจจุบัน -->
+    <section>
+        <h2 style="margin-bottom: 12px;">รายการโปรโมชันที่เปิดใช้งาน</h2>
+        <div th:if="${#lists.isEmpty(promotions)}" class="card muted" style="text-align: center; padding: 24px;">
+            ยังไม่มีโปรโมชันที่เปิดใช้งานอยู่ในระบบ
+        </div>
+
+        <table th:if="${not #lists.isEmpty(promotions)}" class="table">
+            <thead>
+            <tr>
+                <th>รหัสโปรโมชัน</th>
+                <th>รายละเอียด</th>
+                <th>ประเภทส่วนลด</th>
+                <th>มูลค่าส่วนลด</th>
+                <th>ยอดสั่งซื้อขั้นต่ำ</th>
+                <th>ระยะเวลาใช้งาน</th>
+                <th>สถานะ</th>
+                <th>จัดการ</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="promo : ${promotions}">
+                <td>
+                    <code style="font-weight: bold; font-size: 1.05rem;" th:text="${promo.code}">PROMO10</code>
+                </td>
+                <td th:text="${promo.description != null ? promo.description : '-'}">-</td>
+                <td>
+                    <span th:if="${promo.discountType.name() == 'PERCENTAGE'}" class="badge">เปอร์เซ็นต์ (%)</span>
+                    <span th:if="${promo.discountType.name() == 'FIXED_AMOUNT'}" class="badge">เงินสดคงที่</span>
+                </td>
+                <td>
+                    <strong th:if="${promo.discountType.name() == 'PERCENTAGE'}" th:text="${promo.discountValue} + '%'">10%</strong>
+                    <strong th:if="${promo.discountType.name() == 'FIXED_AMOUNT'}" th:text="${#numbers.formatDecimal(promo.discountValue, 1, 'COMMA', 2, 'POINT')} + ' บาท'">50.00 บาท</strong>
+                </td>
+                <td th:text="${#numbers.formatDecimal(promo.minOrderAmount, 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</td>
+                <td style="font-size: 0.9rem;" class="muted">
+                    <span th:text="${promo.startDate != null ? #temporals.format(promo.startDate, 'dd/MM/yyyy HH:mm') : '-'}">01/01/2026</span>
+                    -
+                    <span th:text="${promo.endDate != null ? #temporals.format(promo.endDate, 'dd/MM/yyyy HH:mm') : '-'}">31/12/2026</span>
+                </td>
+                <td>
+                    <span class="badge badge-success">เปิดใช้งาน</span>
+                </td>
+                <td>
+                    <form th:action="@{/admin/promotions/{id}/deactivate(id=${promo.id})}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-danger btn-small"
+                                onclick="return confirm('ยืนยันที่จะปิดการใช้งานโปรโมชันนี้?');">
+                            ปิดใช้งาน
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
