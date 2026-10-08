@@ -126,9 +126,12 @@ mvn spring-boot:run
 | | `GET`, `PUT /api/v1/customers/{id}` | STAFF, ADMIN |
 | | `DELETE /api/v1/customers/{id}` (soft delete) | ADMIN |
 | Admin Users | `GET`, `POST /api/v1/admin/users` · `GET /api/v1/admin/users/{id}` · `PATCH /{id}/role` · `PATCH /{id}/status` | ADMIN |
-| Print Services | `GET`, `POST /api/v1/services` · `GET`, `PUT`, `DELETE /api/v1/services/{id}` | ผู้ที่ login |
-| Addon Services | `GET`, `POST /api/v1/addon-services` · `GET`, `PUT`, `DELETE /api/v1/addon-services/{id}` | ผู้ที่ login |
-| Promotions | `GET`, `POST /api/v1/promotions` · `GET`, `DELETE /api/v1/promotions/{id}` · `GET /api/v1/promotions/validate/{code}` | ผู้ที่ login |
+| Print Services | `GET /api/v1/services?page=0&size=10&sort=id` · `GET /api/v1/services/{id}` | ทุกคน |
+| | `POST /api/v1/services` · `PUT`, `DELETE /api/v1/services/{id}` | ADMIN |
+| Addon Services | `GET /api/v1/addon-services` · `GET /api/v1/addon-services/{id}` | ทุกคน |
+| | `POST /api/v1/addon-services` · `PUT`, `DELETE /api/v1/addon-services/{id}` | ADMIN |
+| Promotions | `GET /api/v1/promotions` · `GET /api/v1/promotions/{id}` · `GET /api/v1/promotions/validate/{code}` | ผู้ที่ login |
+| | `POST /api/v1/promotions` · `DELETE /api/v1/promotions/{id}` | ADMIN |
 | Orders, Status, Payment, Notifications | (P3, P4 — กำลังพัฒนา) | |
 
 **รูปแบบ Error มาตรฐาน** (จาก `GlobalExceptionHandler`)
