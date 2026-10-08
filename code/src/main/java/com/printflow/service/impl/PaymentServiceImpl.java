@@ -7,6 +7,8 @@ import com.printflow.exception.DuplicateResourceException;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.repository.PaymentRepository;
 import com.printflow.service.PaymentService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,5 +49,11 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setPaymentStatus(PaymentStatus.PAID);
         payment.setPaidAt(LocalDateTime.now());
         return paymentRepository.save(payment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Payment> findAll(Pageable pageable) {
+        return paymentRepository.findAll(pageable);
     }
 }
