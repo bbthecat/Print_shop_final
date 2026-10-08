@@ -1,10 +1,7 @@
 package com.printflow.dto.request;
 
 import com.printflow.domain.enums.DiscountType;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -32,4 +29,11 @@ public record PromotionRequest(
         @NotNull(message = "End date is required")
         LocalDateTime endDate
 ) {
+    @AssertTrue(message = "Percentage discount must not exceed 100")
+    public boolean isDiscountValueValid() {
+        if (discountType == DiscountType.PERCENTAGE && discountValue != null) {
+            return discountValue.compareTo(new BigDecimal("100")) <= 0;
+        }
+        return true;
+    }
 }

@@ -3,47 +3,72 @@
 ## Strategy (P2)
 
 ### ปัญหาที่แก้
-ราคางานพิมพ์คำนวณต่างกันตามประเภท ถ้าใช้ if-else ก้อนเดียว
-ทุกครั้งที่เพิ่มประเภทใหม่ต้องแก้โค้ดเดิม (ผิด Open/Closed)
+ราคางานพิมพ์และส่วนลดโปรโมชันมีรูปแบบการคำนวณที่แตกต่างกันตามประเภทบริการ
+หากเขียนสูตรทั้งหมดรวมอยู่ใน service เดียวโดยใช้ `switch-case` หรือ `if-else` หลายชั้น จะทำให้:
+1. โค้ดมี **High Coupling** และยากต่อการทดสอบแยกส่วน
+2. ละเมิด **Open/Closed Principle (OCP)** เพราะทุกครั้งที่มีการเพิ่มประเภทงานพิมพ์ใหม่ (เช่น พิมพ์โปสเตอร์ขนาดใหญ่) หรือโปรโมชันรูปแบบใหม่ จะต้องเปิดโค้ดเดิมมาแก้ไข `if-else` เสมอ ซึ่งเสี่ยงต่อการกระทบกับประเภทเดิมที่ทำงานถูกต้องอยู่แล้ว
 
-### Pricing Strategy
-| PricingType | สูตรคำนวณ | ตัวอย่าง |
+### แนวทางแก้ไข
+ประยุกต์ใช้ **Strategy Pattern** โดยแยกอัลกอริทึมการคำนวณราคาออกเป็นคลาสเฉพาะกลุ่ม:
+1. **PricingStrategy**: กำหนดสัญญากลางสำหรับการคำนวณราคาพิมพ์หลัก (`BLACK_WHITE`, `COLOR`, `PHOTO`)
+2. **DiscountStrategy**: กำหนดสัญญากลางสำหรับการคำนวณส่วนลดโปรโมชัน (`PERCENTAGE`, `FIXED_AMOUNT`)
+3. **Map-based Resolver**: ใช้ Spring Framework ในการรวบรวม Strategy Beans ทั้งหมด (`List<PricingStrategy>`) และสร้าง `Map<PricingType, PricingStrategy>` ขึ้นมาตอนเริ่มต้นแอปพลิเคชัน (Lookup Table) ทำให้ Resolver สามารถดึง Strategy ที่ต้องการได้ด้วยเวลา O(1) โดยไม่ต้องพึ่งพา `switch-case`
+
+### โครงสร้างไฟล์และคลาสที่ใช้
+| ไฟล์ | บทบาท (Role) | หน้าที่ |
 |---|---|---|
-| BLACK_WHITE | `(basePrice × pageCount) × copyCount` | ขาวดำ 1.50 บาท/หน้า, 20 หน้า, 2 ชุด = (1.50 × 20) × 2 = 60.00 บาท |
-| COLOR | `(basePrice × pageCount) × copyCount` | พิมพ์สี 5.00 บาท/หน้า, 10 หน้า, 3 ชุด = (5.00 × 10) × 3 = 150.00 บาท |
-| PHOTO | `(basePrice × pageCount) × copyCount` (กระดาษโฟโต้คุณภาพสูง) | พิมพ์ภาพถ่าย 15.00 บาท/หน้า, 5 หน้า, 1 ชุด = (15.00 × 5) × 1 = 75.00 บาท |
+| `service/strategy/pricing/PricingStrategy.java` | Strategy Interface | กำหนดสัญญา `calculate(basePrice, pageCount, copyCount)` และ `getPricingType()` |
+| `service/strategy/pricing/BlackWhitePricingStrategy.java` | Concrete Strategy | คำนวณราคางานพิมพ์ขาวดำมาตรฐาน |
+| `service/strategy/pricing/ColorPricingStrategy.java` | Concrete Strategy | คำนวณราคางานพิมพ์สีเลเซอร์ |
+| `service/strategy/pricing/PhotoPricingStrategy.java` | Concrete Strategy | คำนวณราคางานพิมพ์ภาพถ่ายคุณภาพสูง |
+| `service/strategy/pricing/PricingStrategyResolver.java` | Resolver (Context Helper) | จับคู่ `PricingType` กับ Strategy ผ่าน Map Lookup โดยปราศจาก `if-else` |
+| `service/strategy/pricing/PricingCalculator.java` | Context / Facade | เรียก Strategy มาคำนวณราคางานพิมพ์หลัก และรวมค่าบริการเสริม (Addon) ต่อชุด |
+| `service/strategy/discount/DiscountStrategy.java` | Strategy Interface | กำหนดสัญญา `calculateDiscount(orderAmount, discountValue)` |
+| `service/strategy/discount/PercentageDiscountStrategy.java` | Concrete Strategy | คำนวณส่วนลดแบบคิดเป็นเปอร์เซ็นต์ (%) |
+| `service/strategy/discount/FixedAmountDiscountStrategy.java` | Concrete Strategy | คำนวณส่วนลดแบบจำนวนเงินสดคงที่ (บาท) |
+| `service/strategy/discount/DiscountStrategyResolver.java` | Resolver (Context Helper) | จับคู่ `DiscountType` กับ Strategy ผ่าน Map Lookup |
 
-### บริการเสริม (Addon)
-คิดราคาตามประเภทบริการเสริมต่อชุด หรือต่อแผ่น:
-| บริการเสริม (Addon) | ราคา (ตัวอย่าง) | หน่วยคิดราคา |
+### ตารางสูตรคำนวณราคาพิมพ์หลัก (Pricing Strategy)
+สูตรการคำนวณของแต่ละ Strategy แตกต่างกันจริงตามลักษณะและโมเดลธุรกิจของงานพิมพ์แต่ละประเภท:
+| PricingType | สูตรคำนวณ | เงื่อนไขเฉพาะ / จุดเด่นของ Strategy | ตัวอย่างการคำนวณ |
+|---|---|---|---|
+| `BLACK_WHITE` | `(basePrice × pageCount) × copyCount` | คิดราคาตามจริงเชิงเส้น เหมาะกับเอกสารและรายงานทั่วไป | ขาวดำ 1.50 บ./หน้า, 20 หน้า, 2 ชุด = (1.50 × 20) × 2 = **60.00 บาท** |
+| `COLOR` | `(basePrice × pageCount) × copyCount` *(หาก pageCount > 50 ได้รับส่วนลด 10%)* | มี **Volume Discount** สำหรับงานพิมพ์สีชุดหนา เพื่อสนับสนุนงานพิมพ์เล่มใหญ่ | พิมพ์สี 5.00 บ./หน้า, 60 หน้า, 1 ชุด = (5.00 × 60) = 300 บ. ลด 10% = **270.00 บาท** |
+| `PHOTO` | `basePrice × copyCount` | **คิดราคาต่อแผ่นรูปภาพ ไม่คูณจำนวนหน้า** เพราะเป็นงานอัดรูปแผ่นเดี่ยวบนกระดาษโฟโต้คุณภาพสูง | พิมพ์รูป 15.00 บ./แผ่น, 3 แผ่น (copyCount = 3) = 15.00 × 3 = **45.00 บาท** |
+
+### บริการเสริม (Addon Services)
+บริการเสริมคิดราคาต่อชุด (Copy) โดยรวมเข้ากับราคางานพิมพ์ใน `PricingCalculator.calculateItemTotal()`:
+| บริการเสริม (Addon) | ราคาตัวอย่าง | หน่วยคิดราคา | ตัวอย่างการคำนวณ |
+|---|---|---|---|
+| เย็บมุม (Corner Staple) | 2.00 บาท | ต่อชุด (copy) | สั่ง 3 ชุด = 2.00 × 3 = **6.00 บาท** |
+| เข้าเล่มสันเกลียว (Spiral Binding) | 25.00 บาท | ต่อเล่ม/ชุด (copy) | สั่ง 2 เล่ม = 25.00 × 2 = **50.00 บาท** |
+| เข้าเล่มปกแข็ง (Hardcover Binding) | 80.00 บาท | ต่อเล่ม/ชุด (copy) | สั่ง 1 เล่ม = 80.00 × 1 = **80.00 บาท** |
+| เคลือบพลาสติก (Lamination) | 10.00 บาท | ต่อหน้า/แผ่น | สั่ง 5 แผ่น = 10.00 × 5 = **50.00 บาท** |
+
+*สูตรรวมใน `PricingCalculator`:*  
+$$\text{Item Total} = \text{PrintPrice} + \sum (\text{AddonPrice} \times \text{copyCount})$$
+*(ผลลัพธ์คืนค่า $\ge 0$ เสมอ ไม่ติดลบ)*
+
+### ส่วนลดโปรโมชัน (Discount Strategy)
+| DiscountType | สูตรคำนวณ | ตัวอย่าง |
 |---|---|---|
-| เย็บมุม (Corner Staple) | 2.00 บาท | ต่อชุด (copy) |
-| เข้าเล่มสันเกลียว (Spiral Binding) | 25.00 บาท | ต่อเล่ม/ชุด (copy) |
-| เข้าเล่มปกแข็ง (Hardcover Binding) | 80.00 บาท | ต่อเล่ม/ชุด (copy) |
-| เคลือบพลาสติก (Lamination) | 10.00 บาท | ต่อหน้า/แผ่น (page × copy) |
+| `PERCENTAGE` | $\text{orderAmount} \times (\text{value} / 100)$ | ยอด 200 บาท ลด 10% = **20.00 บาท** |
+| `FIXED_AMOUNT` | $\min(\text{value}, \text{orderAmount})$ | ยอด 200 บาท ลด 30 บาท = **30.00 บาท** |
 
-*สูตรรวมใน PricingCalculator:*  
-`Item Total = PrintPrice + Sum(AddonPrice)` (คืนค่า >= 0 เสมอ)
+### กฎสำคัญทางธุรกิจ (Business Rules)
+1. **ผลลัพธ์ไม่ติดลบ:** ทุก Strategy คืนค่า $\ge 0$ เสมอ หากคำนวณได้ค่าลบจะตัดเป็น 0
+2. **ไม่เกินยอดรวม:** ส่วนลดต้องไม่เกินยอดสั่งซื้อสุทธิ (ราคาสุทธิหลังลดไม่ติดลบ)
+3. **ยอดสั่งซื้อขั้นต่ำ:** โปรโมชันจะใช้ได้เมื่อยอดสั่งซื้อ $\ge$ `minOrderAmount`
+4. **ช่วงเวลาที่ใช้งานได้:** ตรวจสอบ `startDate` และ `endDate` เทียบกับเวลาปัจจุบัน พร้อมสถานะ `active = true`
+5. **รหัสต้องไม่ซ้ำ:** โค้ดโปรโมชันต้องเป็นตัวพิมพ์ใหญ่และไม่ซ้ำกัน (`UNIQUE`)
+6. **ส่วนลดเปอร์เซ็นต์ต้องไม่เกิน 100%:** โปรโมชันประเภท `PERCENTAGE` กำหนดให้ `discountValue` อยู่ระหว่าง 0.01 ถึง 100.00% เท่านั้น (มี Validation ควบคุมทั้งระดับ DTO Request, Controller Form และ Service Layer)
 
-### กฎที่ต้องรักษา
-- ทุก Strategy คืนค่า >= 0 เสมอ (ไม่ติดลบ)
-- ห้าม throw UnsupportedOperationException (ปฏิบัติตาม Liskov Substitution Principle: LSP)
-- เลือกใช้ Map-based `PricingStrategyResolver` เพื่อรองรับการเพิ่ม Strategy ใหม่โดยไม่ต้องแก้ไขโค้ดเดิม (Open/Closed Principle: OCP)
-
-### ส่วนลด (Discount Strategy)
-แยกประเภทส่วนลดตามประเภทโปรโมชัน (Percentage / FixedAmount)
-
-### Discount Strategy
-| DiscountType | สูตร | ตัวอย่าง |
-|---|---|---|
-| PERCENTAGE | subtotal × (value / 100) | 10% ของ 200 = 20 |
-| FIXED_AMOUNT | value | ลด 30 บาท |
-
-### กฎโปรโมชัน
-- ใช้ได้เมื่อ subtotal >= ยอดขั้นต่ำ (ไม่ถึง = ส่วนลด 0 หรือ error ตามที่ทีมตกลง)
-- ใช้ได้เฉพาะช่วงวันที่เริ่ม-สิ้นสุด และ active = true
-- ส่วนลดต้องไม่เกิน subtotal (ราคาสุทธิไม่ติดลบ)
-- โค้ดโปรโมชันซ้ำกันไม่ได้ (UNIQUE)
+### การวิเคราะห์ตามหลักการ SOLID
+* **SRP (Single Responsibility Principle):** แต่ละ Concrete Strategy รับผิดชอบเพียงสูตรคำนวณเฉพาะประเภทของตนเองเท่านั้น ไม่ยุ่งเกี่ยวกับคลังข้อมูลหรือ Web Controller
+* **OCP (Open/Closed Principle):** เมื่อต้องการเพิ่มประเภทราคาใหม่ (เช่น `CANVAS_PRINT`) สามารถทำได้โดยสร้างคลาสใหม่ที่ `implements PricingStrategy` และใส่ `@Component` โดย**ไม่ต้องแก้ไขโค้ดเดิม**ใน `PricingStrategyResolver` หรือ `PricingCalculator` เลย
+* **LSP (Liskov Substitution Principle):** ทุก Concrete Strategy ปฏิบัติตามสัญญาของ Interface อย่างเคร่งครัด คืนค่า `BigDecimal >= 0` เสมอ และไม่มีการ throw `UnsupportedOperationException` ทำให้สามารถสลับการใช้งานระหว่าง Strategy ใดๆ ได้อย่างปลอดภัย
+* **ISP (Interface Segregation Principle):** อินเทอร์เฟซ `PricingStrategy` และ `DiscountStrategy` มีขนาดกะทัดรัด มีเฉพาะเมธอดที่เกี่ยวข้องกับการคำนวณเท่านั้น ไม่บังคับให้คลาสลูกต้อง implement เมธอดที่ไม่ได้ใช้
+* **DIP (Dependency Inversion Principle):** คลาสระดับสูงอย่าง `PricingCalculator` และ `OrderCommandServiceImpl` ขึ้นอยู่กับ Abstraction (`PricingStrategyResolver`, `PricingStrategy`, `DiscountStrategy`) แทนที่จะผูกติดกับ Concrete Class โดยตรง
 
 ---
 

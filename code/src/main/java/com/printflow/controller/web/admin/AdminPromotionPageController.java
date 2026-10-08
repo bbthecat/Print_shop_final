@@ -1,6 +1,7 @@
 package com.printflow.controller.web.admin;
 
 import com.printflow.domain.entity.Promotion;
+import com.printflow.domain.enums.DiscountType;
 import com.printflow.dto.form.AdminPromotionForm;
 import com.printflow.exception.DuplicateResourceException;
 import com.printflow.service.PromotionService;
@@ -11,6 +12,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -48,6 +50,9 @@ public class AdminPromotionPageController {
                          RedirectAttributes redirect) {
         if (form.getStartDate() != null && form.getEndDate() != null && form.getEndDate().isBefore(form.getStartDate())) {
             bindingResult.rejectValue("endDate", "invalid", "วันสิ้นสุดต้องอยู่หลังวันเริ่มต้น");
+        }
+        if (form.getDiscountType() == DiscountType.PERCENTAGE && form.getDiscountValue() != null && form.getDiscountValue().compareTo(new BigDecimal("100")) > 0) {
+            bindingResult.rejectValue("discountValue", "invalid", "ส่วนลดแบบเปอร์เซ็นต์ต้องไม่เกิน 100%");
         }
 
         if (bindingResult.hasErrors()) {
