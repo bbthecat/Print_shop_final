@@ -5,6 +5,7 @@ import com.printflow.domain.enums.OrderStatus;
 import com.printflow.exception.InvalidStateTransitionException;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.repository.OrderRepository;
+import com.printflow.repository.OrderStatusHistoryRepository;
 import com.printflow.service.event.OrderStatusChangedEvent;
 import com.printflow.service.state.OrderStateResolver;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,9 @@ class OrderStatusServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private OrderStatusHistoryRepository historyRepository;
+
     @Captor
     private ArgumentCaptor<OrderStatusChangedEvent> eventCaptor;
 
@@ -43,6 +47,7 @@ class OrderStatusServiceTest {
     void setUp() {
         service = new OrderStatusServiceImpl(
                 orderRepository,
+                historyRepository,
                 new OrderStateResolver(),
                 eventPublisher
         );
