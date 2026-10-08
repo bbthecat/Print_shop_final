@@ -66,6 +66,10 @@ public class PromotionServiceImpl implements PromotionService {
         if (code == null || code.trim().isEmpty()) {
             throw new ValidationException("Promotion code is required");
         }
+        if (discountType == DiscountType.PERCENTAGE && discountValue != null && discountValue.compareTo(new BigDecimal("100")) > 0) {
+            throw new ValidationException("Percentage discount value cannot exceed 100%");
+        }
+
         String normalizedCode = code.trim().toUpperCase();
         if (promotionRepository.existsByCode(normalizedCode)) {
             throw new DuplicateResourceException("Promotion code already exists: " + normalizedCode);

@@ -64,12 +64,21 @@ class PricingStrategyTest {
     @DisplayName("ColorPricingStrategy Tests")
     class ColorTests {
         @Test
-        @DisplayName("คำนวณราคางานพิมพ์สีถูกต้อง")
+        @DisplayName("คำนวณราคางานพิมพ์สีถูกต้อง (จำนวนหน้า <= 50)")
         void calculateNormal() {
             BigDecimal basePrice = new BigDecimal("5.00");
             BigDecimal total = colorStrategy.calculate(basePrice, 10, 3);
             // (5.00 * 10) * 3 = 150.00
             assertThat(total).isEqualByComparingTo(new BigDecimal("150.00"));
+        }
+
+        @Test
+        @DisplayName("คำนวณราคางานพิมพ์สี กรณีจำนวนหน้าเกิน 50 หน้าต่อชุด ได้รับส่วนลด 10%")
+        void calculateVolumeDiscount() {
+            BigDecimal basePrice = new BigDecimal("5.00");
+            // 60 หน้า * 1 ชุด * 5.00 บาท = 300.00 บาท -> ได้รับส่วนลด 10% = 270.00 บาท
+            BigDecimal total = colorStrategy.calculate(basePrice, 60, 1);
+            assertThat(total).isEqualByComparingTo(new BigDecimal("270.00"));
         }
 
         @Test
@@ -91,12 +100,12 @@ class PricingStrategyTest {
     @DisplayName("PhotoPricingStrategy Tests")
     class PhotoTests {
         @Test
-        @DisplayName("คำนวณราคางานพิมพ์ภาพถ่ายถูกต้อง")
+        @DisplayName("คำนวณราคางานพิมพ์ภาพถ่าย คิดราคาต่อแผ่นรูปภาพตาม copyCount ไม่คูณจำนวนหน้า")
         void calculateNormal() {
             BigDecimal basePrice = new BigDecimal("15.00");
-            BigDecimal total = photoStrategy.calculate(basePrice, 5, 1);
-            // (15.00 * 5) * 1 = 75.00
-            assertThat(total).isEqualByComparingTo(new BigDecimal("75.00"));
+            // รูปภาพ: ส่ง pageCount = 5, copyCount = 2 -> คิดตาม copyCount 2 แผ่น * 15.00 = 30.00 บาท
+            BigDecimal total = photoStrategy.calculate(basePrice, 5, 2);
+            assertThat(total).isEqualByComparingTo(new BigDecimal("30.00"));
         }
 
         @Test

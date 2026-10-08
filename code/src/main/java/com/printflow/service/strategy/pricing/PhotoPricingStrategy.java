@@ -18,7 +18,8 @@ public class PhotoPricingStrategy implements PricingStrategy {
         if (basePrice == null || basePrice.compareTo(BigDecimal.ZERO) < 0 || pageCount <= 0 || copyCount <= 0) {
             return BigDecimal.ZERO;
         }
-        return basePrice.multiply(BigDecimal.valueOf(pageCount))
-                .multiply(BigDecimal.valueOf(copyCount));
+
+        // งานพิมพ์รูปภาพ: คิดราคาต่อแผ่นรูปภาพตามจำนวนสำเนา (copyCount) ไม่คูณจำนวนหน้า (เพราะเป็นงานอัดรูปแผ่นเดี่ยว)
+        return basePrice.multiply(BigDecimal.valueOf(copyCount));
     }
 }
