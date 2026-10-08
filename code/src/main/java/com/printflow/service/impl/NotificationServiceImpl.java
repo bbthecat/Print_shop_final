@@ -1,9 +1,12 @@
 package com.printflow.service.impl;
 
 import com.printflow.domain.entity.Notification;
+import com.printflow.dto.response.NotificationResponse;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.repository.NotificationRepository;
 import com.printflow.service.NotificationService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,14 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<NotificationResponse> getMyNotifications(Long userId, Pageable pageable) {
+        return notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(userId, pageable)
+                .map(this::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public long countUnread(Long userId) {
         return notificationRepository.countByUserIdAndReadFalse(userId);
     }
@@ -37,5 +48,16 @@ public class NotificationServiceImpl implements NotificationService {
 
         notification.markAsRead();
         notificationRepository.save(notification);
+    }
+
+    private NotificationResponse toResponse(Notification notification) {
+        return new NotificationResponse(
+                notification.getId(),
+                notification.getOrderId(),
+                notification.getTitle(),
+                notification.getMessage(),
+                notification.isRead(),
+                notification.getCreatedAt()
+        );
     }
 }
