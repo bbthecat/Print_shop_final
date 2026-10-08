@@ -98,6 +98,23 @@ class AdminPromotionPageControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void create_whenPercentageExceeds100_shouldReturnViewWithErrors() throws Exception {
+        mockMvc.perform(post("/admin/promotions")
+                        .with(csrf())
+                        .param("code", "OVER100")
+                        .param("discountType", "PERCENTAGE")
+                        .param("discountValue", "150.00")
+                        .param("minOrderAmount", "0.00")
+                        .param("startDate", "2026-10-01T00:00:00")
+                        .param("endDate", "2026-10-31T23:59:59"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/promotions"))
+                .andExpect(model().attributeExists("promotions", "openForm"))
+                .andExpect(model().hasErrors());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void deactivate_whenAdmin_shouldRedirect() throws Exception {
         mockMvc.perform(post("/admin/promotions/1/deactivate")
                         .with(csrf()))

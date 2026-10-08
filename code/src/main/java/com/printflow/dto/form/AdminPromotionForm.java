@@ -1,10 +1,7 @@
 package com.printflow.dto.form;
 
 import com.printflow.domain.enums.DiscountType;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -39,4 +36,12 @@ public class AdminPromotionForm {
     @NotNull(message = "กรุณาระบุวันสิ้นสุด")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime endDate;
+
+    @AssertTrue(message = "ส่วนลดแบบเปอร์เซ็นต์ต้องไม่เกิน 100%")
+    public boolean isDiscountValueValid() {
+        if (discountType == DiscountType.PERCENTAGE && discountValue != null) {
+            return discountValue.compareTo(new BigDecimal("100")) <= 0;
+        }
+        return true;
+    }
 }
