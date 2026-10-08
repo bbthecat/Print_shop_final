@@ -18,7 +18,7 @@ public class ServiceAvailabilityHandler extends OrderValidationHandler {
 
         for (PrintItem item : context.getItems()) {
 
-            serviceCatalogQueryService.findActiveById(
+            serviceCatalogQueryService.findActivePrintServiceById(
                     item.getServiceId()
             );
         }
