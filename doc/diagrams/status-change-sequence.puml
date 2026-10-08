@@ -1,0 +1,64 @@
+@startuml status-change-sequence
+skinparam defaultFontName "Noto Sans Thai"
+skinparam sequenceMessageAlign center
+skinparam shadowing false
+
+title Sequence #2 — Staff เปลี่ยนสถานะ (State + Observer)
+
+actor Staff
+participant "StaffOrderDetailPageController" as C
+participant "OrderStatusServiceImpl" as S
+participant "OrderRepository" as R
+participant "OrderStateResolver" as RS
+participant "OrderState" as ST
+participant "ApplicationEventPublisher" as P
+participant "OrderHistoryListener" as L1
+participant "InAppNotificationListener" as L2
+participant "OrderStatusHistoryRepository" as HR
+participant "NotificationService" as NS
+
+== เปลี่ยนสถานะสำเร็จ PENDING to CONFIRMED ==
+
+Staff -> C : POST /staff/orders/1/status (CONFIRMED)
+C -> S : changeStatus(1, CONFIRMED, actorUserId)
+S -> R : findById(1)
+R --> S : PrintOrder (PENDING)
+S -> RS : resolve(PENDING)
+RS --> S : PendingState
+S -> ST : confirm()
+ST --> S : CONFIRMED
+S -> R : save(order)
+S -> P : publishEvent(OrderStatusChangedEvent)
+
+P -> L1 : onStatusChanged(event)
+L1 -> HR : save(OrderStatusHistory)
+
+P -> L2 : onStatusChanged(event)
+L2 -> R : findById(1)
+R --> L2 : PrintOrder
+L2 -> NS : create(userId, orderId, title, message)
+
+S --> C : CONFIRMED
+C --> Staff : redirect + flash success
+
+note over S
+  Service ไม่รู้จัก listener
+  รู้จักแค่ ApplicationEventPublisher
+  เพิ่ม listener ใหม่ไม่ต้องแก้ service
+end note
+
+== เปลี่ยนสถานะผิดลำดับ COMPLETED to PROCESSING ==
+
+Staff -> C : POST /staff/orders/1/status (PROCESSING)
+C -> S : changeStatus(1, PROCESSING, actorUserId)
+S -> R : findById(1)
+R --> S : PrintOrder (COMPLETED)
+S -> RS : resolve(COMPLETED)
+RS --> S : CompletedState
+S -> ST : process()
+ST --> S : InvalidStateTransitionException
+note over S : ไม่ save และไม่ publish event
+S --> C : exception
+C --> Staff : flash error (API ตอบ 409 Conflict)
+
+@enduml
