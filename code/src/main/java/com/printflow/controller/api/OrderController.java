@@ -1,5 +1,6 @@
 package com.printflow.controller.api;
 
+import com.printflow.domain.enums.OrderStatus;
 import com.printflow.dto.request.OrderCreateRequest;
 import com.printflow.dto.response.OrderResponse;
 import com.printflow.service.OrderCommandService;
@@ -31,19 +32,26 @@ public class OrderController {
     }
 
     @GetMapping
-    @Operation(summary = "ดึงรายการคำสั่งซื้อแบบแบ่งหน้าและเรียงลำดับ")
+    @Operation(summary = "Get orders with pagination, sorting, and optional status filter")
     public ResponseEntity<Page<OrderResponse>> getAll(
+            @RequestParam(required = false) OrderStatus status,
             @PageableDefault(
                     size = 10,
                     sort = "createdAt",
                     direction = Sort.Direction.DESC
             ) Pageable pageable
     ) {
+        if (status != null) {
+            return ResponseEntity.ok(
+                    queryService.getAllByStatus(status, pageable)
+            );
+        }
+
         return ResponseEntity.ok(queryService.getAll(pageable));
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "ดึงข้อมูลคำสั่งซื้อตาม ID")
+    @Operation(summary = "Get order by ID")
     public ResponseEntity<OrderResponse> getById(
             @PathVariable Long id
     ) {
@@ -51,15 +59,17 @@ public class OrderController {
     }
 
     @PostMapping
-    @Operation(summary = "สร้างคำสั่งซื้อใหม่")
+    @Operation(summary = "Create an order")
     public ResponseEntity<OrderResponse> create(
             @Valid @RequestBody OrderCreateRequest request
     ) {
-        return ResponseEntity.ok(commandService.createOrder(request));
+        return ResponseEntity.ok(
+                commandService.createOrder(request)
+        );
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "ลบคำสั่งซื้อ")
+    @Operation(summary = "Delete an order")
     public ResponseEntity<Void> delete(
             @PathVariable Long id
     ) {
@@ -67,3 +77,4 @@ public class OrderController {
         return ResponseEntity.noContent().build();
     }
 }
+
