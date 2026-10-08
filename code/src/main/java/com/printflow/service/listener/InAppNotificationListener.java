@@ -24,19 +24,19 @@ public class InAppNotificationListener {
 
     @EventListener
     public void onStatusChanged(OrderStatusChangedEvent event) {
-        PrintOrder order = orderRepository.findById(event.orderId()).orElse(null);
-        if (order == null) {
-            return;
-        }
-
         String title = titleOf(event.newStatus());
         if (title == null) {
             return;
         }
 
+        PrintOrder order = orderRepository.findById(event.orderId()).orElse(null);
+        if (order == null) {
+            return;
+        }
+
         notificationService.create(
                 order.getUserId(),
-                order.getId(),
+                event.orderId(),
                 title,
                 messageOf(event.newStatus(), order.getOrderNumber())
         );
