@@ -52,7 +52,8 @@ public class OrderMapper {
                 item.getQuantity(),
                 item.getUnitPrice(),
                 item.getSubtotal(),
-                addonIds
+                addonIds,
+                item.getPageCount() != null ? item.getPageCount() : 1
         );
     }
 }

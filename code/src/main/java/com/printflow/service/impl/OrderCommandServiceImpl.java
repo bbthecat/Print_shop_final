@@ -142,7 +142,9 @@ public class OrderCommandServiceImpl implements OrderCommandService {
                 }
             }
 
-            int pageCount = Math.max(1, itemRequest.pageCount());
+            int pageCount = (itemRequest.pageCount() != null && itemRequest.pageCount() > 0)
+                    ? itemRequest.pageCount()
+                    : 1;
             int copyCount = Math.max(1, itemRequest.quantity());
 
             BigDecimal itemTotal =
@@ -165,7 +167,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             PrintItem item = new PrintItem(
                     order,
                     printService.getId(),
-                    itemRequest.quantity(),
+                    copyCount,
                     pageCount,
                     unitPrice,
                     itemTotal
@@ -263,7 +265,5 @@ public class OrderCommandServiceImpl implements OrderCommandService {
     private String generateOrderNumber() {
         return "ORD-" + System.currentTimeMillis();
     }
-
-    // calculateDiscount() ถูกลบออกแล้ว — ใช้ DiscountStrategyResolver แทน (บรรทัดประมาณ 200)
 }
 

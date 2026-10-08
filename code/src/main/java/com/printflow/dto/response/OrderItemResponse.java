@@ -15,7 +15,19 @@ public record OrderItemResponse(
 
         BigDecimal subtotal,
 
-        List<Long> addonIds
+        List<Long> addonIds,
+
+        Integer pageCount
 
 ) {
+    public OrderItemResponse(
+            Long id,
+            Long serviceId,
+            Integer quantity,
+            BigDecimal unitPrice,
+            BigDecimal subtotal,
+            List<Long> addonIds
+    ) {
+        this(id, serviceId, quantity, unitPrice, subtotal, addonIds, 1);
+    }
 }

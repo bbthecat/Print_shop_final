@@ -22,6 +22,8 @@ import com.printflow.service.ServiceCatalogQueryService;
 import com.printflow.service.strategy.pricing.PricingCalculator;
 import com.printflow.validation.OrderValidationContext;
 import com.printflow.validation.OrderValidationHandler;
+import com.printflow.service.strategy.discount.DiscountStrategy;
+import com.printflow.service.strategy.discount.DiscountStrategyResolver;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,9 +36,12 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,6 +73,9 @@ class OrderCommandServiceTest {
 
     @Mock
     private OrderValidationHandler orderValidationChain;
+
+    @Mock
+    private DiscountStrategyResolver discountStrategyResolver;
 
     @InjectMocks
     private OrderCommandServiceImpl orderCommandService;
@@ -189,13 +197,17 @@ class OrderCommandServiceTest {
         when(promotion.getId()).thenReturn(10L);
         when(promotion.getDiscountType())
                 .thenReturn(DiscountType.PERCENTAGE);
-        when(promotion.getDiscountValue())
-                .thenReturn(BigDecimal.TEN);
         when(promotion.getMinOrderAmount())
                 .thenReturn(BigDecimal.ZERO);
 
         when(orderMapper.toResponse(any(), any(), any()))
                 .thenReturn(response);
+
+        DiscountStrategy discountStrategy = mock(DiscountStrategy.class);
+        when(discountStrategyResolver.resolve(DiscountType.PERCENTAGE))
+                .thenReturn(discountStrategy);
+        when(discountStrategy.calculate(any(), any()))
+                .thenReturn(BigDecimal.TEN);
 
         OrderItemRequest itemRequest =
                 new OrderItemRequest(
@@ -222,6 +234,12 @@ class OrderCommandServiceTest {
         verify(promotionService, atLeastOnce())
                 .findValidByCode("SAVE10");
 
+        verify(discountStrategyResolver)
+                .resolve(DiscountType.PERCENTAGE);
+
+        verify(discountStrategy)
+                .calculate(any(), any());
+
         verify(orderPromotionRepository)
                 .save(any());
 
@@ -230,6 +248,96 @@ class OrderCommandServiceTest {
 
         verify(orderMapper)
                 .toResponse(any(), any(), any());
+    }
+
+    @Test
+    void shouldThrowWhenPromotionMinOrderAmountNotMet() {
+        PrintService printService = mock(PrintService.class);
+        PrintItem savedItem = mock(PrintItem.class);
+        Promotion promotion = mock(Promotion.class);
+
+        when(printService.getId()).thenReturn(1L);
+        when(printService.getPricingType()).thenReturn(PricingType.BLACK_WHITE);
+        when(printService.getBasePrice()).thenReturn(BigDecimal.valueOf(1.50));
+
+        when(serviceCatalogQueryService.findActivePrintServiceById(1L))
+                .thenReturn(printService);
+
+        when(pricingCalculator.calculateItemTotal(
+                any(),
+                any(),
+                anyInt(),
+                anyInt(),
+                any()
+        )).thenReturn(BigDecimal.valueOf(32));
+
+        when(orderRepository.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(printItemRepository.save(any(PrintItem.class)))
+                .thenReturn(savedItem);
+
+        when(promotionService.findValidByCode("WELCOME10"))
+                .thenReturn(promotion);
+        when(promotion.getCode()).thenReturn("WELCOME10");
+        when(promotion.getMinOrderAmount()).thenReturn(BigDecimal.valueOf(100));
+
+        OrderItemRequest itemRequest = new OrderItemRequest(1L, 1, List.of(), 20);
+        OrderCreateRequest request = new OrderCreateRequest(100L, List.of(itemRequest), "WELCOME10");
+
+        ValidationException ex = assertThrows(
+                ValidationException.class,
+                () -> orderCommandService.createOrder(request)
+        );
+
+        assertTrue(ex.getMessage().contains("WELCOME10"));
+        assertTrue(ex.getMessage().contains("100"));
+    }
+
+    @Test
+    void shouldPassPageCountToPricingCalculator() {
+        PrintService printService = mock(PrintService.class);
+        PrintItem savedItem = mock(PrintItem.class);
+        OrderResponse response = mock(OrderResponse.class);
+
+        when(printService.getId()).thenReturn(1L);
+        when(printService.getPricingType()).thenReturn(PricingType.BLACK_WHITE);
+        when(printService.getBasePrice()).thenReturn(BigDecimal.valueOf(1.50));
+
+        when(serviceCatalogQueryService.findActivePrintServiceById(1L))
+                .thenReturn(printService);
+
+        when(pricingCalculator.calculateItemTotal(
+                eq(PricingType.BLACK_WHITE),
+                eq(BigDecimal.valueOf(1.50)),
+                eq(20),
+                eq(1),
+                any()
+        )).thenReturn(BigDecimal.valueOf(32.00));
+
+        when(orderRepository.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(savedItem.getId()).thenReturn(1L);
+        when(printItemRepository.save(any(PrintItem.class)))
+                .thenReturn(savedItem);
+        when(printItemAddonRepository.findByItemId(1L))
+                .thenReturn(List.of());
+        when(orderMapper.toResponse(any(), any(), any()))
+                .thenReturn(response);
+
+        OrderItemRequest itemRequest = new OrderItemRequest(1L, 1, List.of(), 20);
+        OrderCreateRequest request = new OrderCreateRequest(100L, List.of(itemRequest), null);
+
+        OrderResponse result = orderCommandService.createOrder(request);
+
+        assertNotNull(result);
+        verify(pricingCalculator).calculateItemTotal(
+                eq(PricingType.BLACK_WHITE),
+                eq(BigDecimal.valueOf(1.50)),
+                eq(20),
+                eq(1),
+                any()
+        );
     }
 
     @Test

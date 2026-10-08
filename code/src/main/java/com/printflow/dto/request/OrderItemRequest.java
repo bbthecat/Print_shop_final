@@ -12,13 +12,19 @@ public record OrderItemRequest(
 
         @NotNull
         @Min(1)
-        Integer pageCount,
-
-        @NotNull
-        @Min(1)
         Integer quantity,
 
-        List<Long> addonIds
+        List<Long> addonIds,
+
+        @Min(1)
+        Integer pageCount
 
 ) {
+    public OrderItemRequest(Long serviceId, Integer quantity, List<Long> addonIds) {
+        this(serviceId, quantity, addonIds, 1);
+    }
+
+    public OrderItemRequest(Long serviceId, Integer pageCount, Integer quantity, List<Long> addonIds) {
+        this(serviceId, quantity, addonIds, pageCount != null ? pageCount : 1);
+    }
 }

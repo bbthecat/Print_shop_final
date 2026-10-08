@@ -51,10 +51,11 @@
                                th:classappend="${#fields.hasErrors('quantity')} ? 'invalid' : ''">
                         <div class="field-error" th:if="${#fields.hasErrors('quantity')}" th:errors="*{quantity}"></div>
                     </div>
-                    <div class="form-group">
-                        <label for="fileName">ชื่อไฟล์เอกสาร</label>
-                        <input type="text" id="fileName" th:field="*{fileName}" placeholder="เช่น project_final.pdf">
-                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="fileName">ชื่อไฟล์เอกสาร</label>
+                    <input type="text" id="fileName" th:field="*{fileName}" placeholder="เช่น project_final.pdf">
                 </div>
 
                 <!-- บริการเสริม -->

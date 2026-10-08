@@ -26,6 +26,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.printflow.domain.entity.AddonService;
+import com.printflow.domain.entity.PrintService;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -82,9 +85,9 @@ public class OrderWebController {
 
             OrderItemRequest itemRequest = new OrderItemRequest(
                     form.getServiceId(),
-                    form.getPageCount() != null ? form.getPageCount() : 1,
                     form.getQuantity(),
-                    form.getAddonIds() != null ? form.getAddonIds() : List.of()
+                    form.getAddonIds() != null ? form.getAddonIds() : List.of(),
+                    form.getPageCount() != null ? form.getPageCount() : 1
             );
 
             OrderCreateRequest request = new OrderCreateRequest(
@@ -160,11 +163,13 @@ public class OrderWebController {
     private void populateCatalogMaps(Model model) {
         Map<Long, String> serviceMap = catalogQueryService.findAllActivePrintServices()
                 .stream()
-                .collect(Collectors.toMap(PrintServiceResponse::id, PrintServiceResponse::name));
+                .collect(Collectors.toMap(PrintService::getId, PrintService::getName, (a, b) -> a));
         Map<Long, String> addonMap = catalogQueryService.findAllActiveAddonServices()
                 .stream()
-                .collect(Collectors.toMap(AddonServiceResponse::id, AddonServiceResponse::name));
+                .collect(Collectors.toMap(AddonService::getId, AddonService::getName, (a, b) -> a));
         model.addAttribute("serviceMap", serviceMap);
+        model.addAttribute("servicesMap", serviceMap);
         model.addAttribute("addonMap", addonMap);
+        model.addAttribute("addonsMap", addonMap);
     }
 }
