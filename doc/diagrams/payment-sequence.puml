@@ -1,0 +1,51 @@
+@startuml payment-sequence
+skinparam defaultFontName "Noto Sans Thai"
+skinparam sequenceMessageAlign center
+skinparam shadowing false
+
+title Sequence #3 — บันทึกการชำระเงินและปิดงาน
+
+actor Staff
+participant "StaffPaymentPageController" as PC
+participant "PaymentServiceImpl" as PS
+participant "PaymentRepository" as PR
+participant "StaffOrderDetailPageController" as OC
+participant "OrderStatusServiceImpl" as OS
+participant "ApplicationEventPublisher" as EP
+participant "OrderHistoryListener" as L1
+participant "InAppNotificationListener" as L2
+
+== ขั้นที่ 1 บันทึกการชำระเงิน ==
+
+Staff -> PC : POST /staff/payments/1/paid (CASH)
+PC -> PS : markAsPaid(1, CASH)
+PS -> PR : findByOrderId(1)
+PR --> PS : Payment (UNPAID)
+PS -> PS : setPaymentMethod / setPaymentStatus(PAID) / setPaidAt
+PS -> PR : save(payment)
+PR --> PS : Payment (PAID)
+PS --> PC : Payment
+PC --> Staff : redirect + flash success
+
+note over PS
+  client ส่งมาแค่ช่องทางชำระ
+  สถานะและเวลาชำระ service เป็นคนกำหนด
+end note
+
+== ขั้นที่ 2 ปิดงาน READY to COMPLETED ==
+
+Staff -> OC : POST /staff/orders/1/status (COMPLETED)
+OC -> OS : changeStatus(1, COMPLETED, actorUserId)
+OS -> OS : ReadyState.complete() คืนค่า COMPLETED
+OS -> EP : publishEvent(OrderStatusChangedEvent)
+EP -> L1 : บันทึกประวัติ READY to COMPLETED
+EP -> L2 : สร้างแจ้งเตือน "ส่งมอบงานแล้ว"
+OS --> OC : COMPLETED
+OC --> Staff : redirect + flash success
+
+note over OS
+  ถ้าสถานะยังไม่ถึง READY
+  จะโยน InvalidStateTransitionException (409)
+end note
+
+@enduml

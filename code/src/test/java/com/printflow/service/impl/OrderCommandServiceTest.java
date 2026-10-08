@@ -27,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -68,6 +69,9 @@ class OrderCommandServiceTest {
 
     @Mock
     private OrderValidationHandler orderValidationChain;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private OrderCommandServiceImpl orderCommandService;
@@ -147,6 +151,8 @@ class OrderCommandServiceTest {
 
         verify(orderMapper)
                 .toResponse(any(), any(), any());
+
+        verify(eventPublisher).publishEvent(any(Object.class));
     }
 
     @Test
@@ -230,6 +236,8 @@ class OrderCommandServiceTest {
 
         verify(orderMapper)
                 .toResponse(any(), any(), any());
+
+        verify(eventPublisher).publishEvent(any(Object.class));
     }
 
     @Test
@@ -254,6 +262,8 @@ class OrderCommandServiceTest {
                 .save(any());
         verify(printItemRepository, never())
                 .save(any());
+        verify(eventPublisher, never())
+                .publishEvent(any(Object.class));
     }
 
     @Test
