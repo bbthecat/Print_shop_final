@@ -96,7 +96,7 @@ class PrintServiceControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     void create_whenValid_shouldReturn201() throws Exception {
         PrintService service = new PrintService();
         service.setId(1L);
@@ -128,7 +128,7 @@ class PrintServiceControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     void create_whenInvalid_shouldReturn400() throws Exception {
         // Missing name and basePrice
         String json = """
@@ -146,7 +146,38 @@ class PrintServiceControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
+    void update_whenValid_shouldReturn200() throws Exception {
+        PrintService service = new PrintService();
+        service.setId(1L);
+        PrintServiceResponse response = new PrintServiceResponse(
+                1L, "Doc Color Updated", "Desc Updated", new BigDecimal("6.00"), PricingType.COLOR, true, LocalDateTime.now(), LocalDateTime.now()
+        );
+
+        when(commandService.updatePrintService(eq(1L), eq("Doc Color Updated"), eq("Desc Updated"), eq(new BigDecimal("6.00")), eq(PricingType.COLOR), any()))
+                .thenReturn(service);
+        when(mapper.toResponse(service)).thenReturn(response);
+
+        String json = """
+                {
+                    "name": "Doc Color Updated",
+                    "description": "Desc Updated",
+                    "basePrice": 6.00,
+                    "pricingType": "COLOR"
+                }
+                """;
+
+        mockMvc.perform(put("/api/v1/services/1")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Doc Color Updated"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void delete_shouldReturn204() throws Exception {
         mockMvc.perform(delete("/api/v1/services/1")
                         .with(csrf()))
