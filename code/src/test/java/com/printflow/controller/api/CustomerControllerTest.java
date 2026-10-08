@@ -6,7 +6,7 @@ import com.printflow.domain.enums.Role;
 import com.printflow.dto.response.CustomerResponse;
 import com.printflow.exception.DuplicateResourceException;
 import com.printflow.exception.ResourceNotFoundException;
-import com.printflow.security.CustomerAccessChecker;
+import com.printflow.security.CurrentUserProvider;
 import com.printflow.security.UserPrincipal;
 import com.printflow.service.CustomerService;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(CustomerController.class)
-@Import({SecurityConfig.class, CustomerAccessChecker.class})
+@Import(SecurityConfig.class)
 class CustomerControllerTest {
 
     private static final String VALID_REGISTER_JSON = """
@@ -57,6 +57,9 @@ class CustomerControllerTest {
 
     @MockBean
     private CustomerService customerService;
+
+    @MockBean
+    private CurrentUserProvider currentUserProvider;
 
     private CustomerResponse sampleResponse(Long id) {
         return new CustomerResponse(id, "somchai", "somchai@example.com", "Somchai", "Jaidee",
@@ -142,16 +145,24 @@ class CustomerControllerTest {
     }
 
     @Test
-    void getById_ownAccount_returns200() throws Exception {
+    void getMe_asCustomer_returnsOwnData() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(5L);
         when(customerService.getById(5L)).thenReturn(sampleResponse(5L));
 
-        mockMvc.perform(get("/api/v1/customers/5").with(user(customerPrincipal(5L))))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/customers/me").with(user(customerPrincipal(5L))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(5));
     }
 
     @Test
-    void getById_anotherCustomer_returns403() throws Exception {
-        mockMvc.perform(get("/api/v1/customers/6").with(user(customerPrincipal(5L))))
+    void getMe_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/customers/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getById_asCustomer_returns403() throws Exception {
+        mockMvc.perform(get("/api/v1/customers/5").with(user(customerPrincipal(5L))))
                 .andExpect(status().isForbidden());
         verify(customerService, never()).getById(any());
     }
@@ -177,13 +188,24 @@ class CustomerControllerTest {
     }
 
     @Test
-    void update_ownAccount_returns200() throws Exception {
+    void updateMe_asCustomer_updatesOwnData() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(5L);
         when(customerService.update(eq(5L), any())).thenReturn(sampleResponse(5L));
 
-        mockMvc.perform(put("/api/v1/customers/5").with(user(customerPrincipal(5L)))
+        mockMvc.perform(put("/api/v1/customers/me").with(user(customerPrincipal(5L)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_UPDATE_JSON))
                 .andExpect(status().isOk());
+        verify(customerService).update(eq(5L), any());
+    }
+
+    @Test
+    void updateById_asCustomer_returns403() throws Exception {
+        mockMvc.perform(put("/api/v1/customers/5").with(user(customerPrincipal(5L)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_UPDATE_JSON))
+                .andExpect(status().isForbidden());
+        verify(customerService, never()).update(any(), any());
     }
 
     @Test
