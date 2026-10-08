@@ -3,6 +3,7 @@ package com.printflow.service.impl;
 import com.printflow.domain.entity.PrintItem;
 import com.printflow.domain.entity.PrintItemAddon;
 import com.printflow.domain.entity.PrintOrder;
+import com.printflow.domain.enums.OrderStatus;
 import com.printflow.dto.response.OrderResponse;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.mapper.OrderMapper;
@@ -17,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,20 +60,33 @@ public class OrderQueryServiceImpl implements OrderQueryService {
 
     @Override
     public Page<OrderResponse> getAll(Pageable pageable) {
-        return orderRepository.findAll(pageable)
-                .map(order -> {
-                    List<PrintItem> items =
-                            printItemRepository.findByOrderId(order.getId());
+        return mapOrders(orderRepository.findAll(pageable));
+    }
 
-                    Map<Long, List<Long>> addonIdsByItemId =
-                            getAddonIdsByItemId(items);
+    @Override
+    public Page<OrderResponse> getAllByStatus(
+            OrderStatus status,
+            Pageable pageable
+    ) {
+        return mapOrders(
+                orderRepository.findByStatus(status, pageable)
+        );
+    }
 
-                    return orderMapper.toResponse(
-                            order,
-                            items,
-                            addonIdsByItemId
-                    );
-                });
+    private Page<OrderResponse> mapOrders(Page<PrintOrder> orders) {
+        return orders.map(order -> {
+            List<PrintItem> items =
+                    printItemRepository.findByOrderId(order.getId());
+
+            Map<Long, List<Long>> addonIdsByItemId =
+                    getAddonIdsByItemId(items);
+
+            return orderMapper.toResponse(
+                    order,
+                    items,
+                    addonIdsByItemId
+            );
+        });
     }
 
     private PrintOrder findOrder(Long id) {
@@ -107,3 +120,4 @@ public class OrderQueryServiceImpl implements OrderQueryService {
                 ));
     }
 }
+
