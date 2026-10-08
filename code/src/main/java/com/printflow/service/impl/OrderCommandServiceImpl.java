@@ -20,9 +20,11 @@ import com.printflow.repository.PrintItemRepository;
 import com.printflow.service.OrderCommandService;
 import com.printflow.service.PromotionService;
 import com.printflow.service.ServiceCatalogQueryService;
+import com.printflow.service.event.OrderCreatedEvent;
 import com.printflow.service.strategy.pricing.PricingCalculator;
 import com.printflow.validation.OrderValidationContext;
 import com.printflow.validation.OrderValidationHandler;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +48,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
     private final PricingCalculator pricingCalculator;
     private final OrderMapper orderMapper;
     private final OrderValidationHandler orderValidationChain;
+    private final ApplicationEventPublisher eventPublisher;
 
     public OrderCommandServiceImpl(
             OrderRepository orderRepository,
@@ -56,7 +59,8 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             PromotionService promotionService,
             PricingCalculator pricingCalculator,
             OrderMapper orderMapper,
-            OrderValidationHandler orderValidationChain
+            OrderValidationHandler orderValidationChain,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.orderRepository = orderRepository;
         this.printItemRepository = printItemRepository;
@@ -67,6 +71,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         this.pricingCalculator = pricingCalculator;
         this.orderMapper = orderMapper;
         this.orderValidationChain = orderValidationChain;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -209,6 +214,8 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         order.setTotalPrice(orderTotal);
         orderRepository.save(order);
 
+        eventPublisher.publishEvent(new OrderCreatedEvent(order.getId()));
+
         Map<Long, List<Long>> itemAddonIds = new HashMap<>();
 
         for (PrintItem item : items) {
@@ -282,4 +289,3 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         };
     }
 }
-

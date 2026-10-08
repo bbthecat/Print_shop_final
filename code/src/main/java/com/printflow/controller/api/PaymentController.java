@@ -1,6 +1,5 @@
 package com.printflow.controller.api;
 
-import com.printflow.dto.request.PaymentCreateRequest;
 import com.printflow.dto.request.PaymentUpdateRequest;
 import com.printflow.dto.response.PaymentResponse;
 import com.printflow.mapper.PaymentMapper;
@@ -10,7 +9,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Tag(name = "Payments", description = "บันทึกและตรวจสอบการชำระเงิน")
@@ -26,15 +31,11 @@ public class PaymentController {
     }
 
     @PostMapping
-    @Operation(summary = "Create an unpaid payment record for an order")
-    public ResponseEntity<PaymentResponse> create(
-            @PathVariable Long orderId,
-            @Valid @RequestBody PaymentCreateRequest request
-    ) {
+    @Operation(summary = "Create an unpaid payment record using the order total")
+    public ResponseEntity<PaymentResponse> create(@PathVariable Long orderId) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(paymentMapper.toResponse(
-                        paymentService.createUnpaid(orderId, request.amount())));
+                .body(paymentMapper.toResponse(paymentService.createUnpaid(orderId)));
     }
 
     @GetMapping

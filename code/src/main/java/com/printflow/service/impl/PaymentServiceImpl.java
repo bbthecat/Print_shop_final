@@ -1,10 +1,12 @@
 package com.printflow.service.impl;
 
 import com.printflow.domain.entity.Payment;
+import com.printflow.domain.entity.PrintOrder;
 import com.printflow.domain.enums.PaymentMethod;
 import com.printflow.domain.enums.PaymentStatus;
 import com.printflow.exception.DuplicateResourceException;
 import com.printflow.exception.ResourceNotFoundException;
+import com.printflow.repository.OrderRepository;
 import com.printflow.repository.PaymentRepository;
 import com.printflow.service.PaymentService;
 import org.springframework.data.domain.Page;
@@ -12,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -20,18 +21,26 @@ import java.time.LocalDateTime;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final OrderRepository orderRepository;
 
-    public PaymentServiceImpl(PaymentRepository paymentRepository) {
+    public PaymentServiceImpl(
+            PaymentRepository paymentRepository,
+            OrderRepository orderRepository
+    ) {
         this.paymentRepository = paymentRepository;
+        this.orderRepository = orderRepository;
     }
 
     @Override
-    public Payment createUnpaid(Long orderId, BigDecimal amount) {
+    public Payment createUnpaid(Long orderId) {
+        PrintOrder order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+
         paymentRepository.findByOrderId(orderId).ifPresent(existing -> {
             throw new DuplicateResourceException("Payment already exists for order: " + orderId);
         });
 
-        return paymentRepository.save(new Payment(orderId, amount));
+        return paymentRepository.save(new Payment(orderId, order.getTotalPrice()));
     }
 
     @Override
