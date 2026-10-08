@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('สร้างคำสั่งซื้อ / สั่งพิมพ์งาน')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <h1 style="margin: 0;">สร้างคำสั่งซื้อ / สั่งพิมพ์งาน</h1>
+            <p class="muted" style="margin: 4px 0 0 0;">เลือกบริการงานพิมพ์ บริการเสริม และใส่รหัสโปรโมชันเพื่อคำนวณราคา</p>
+        </div>
+        <div>
+            <a th:href="@{/orders}" class="btn btn-secondary">ประวัติคำสั่งซื้อของฉัน</a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+        <!-- ฟอร์มสร้างคำสั่งซื้อ -->
+        <div class="card">
+            <h2 style="font-size: 1.25rem; margin-bottom: 20px;">ข้อมูลรายการพิมพ์</h2>
+
+            <form th:action="@{/orders/create}" th:object="${form}" method="post">
+                <div class="form-group">
+                    <label for="serviceId">บริการงานพิมพ์หลัก <span style="color: var(--error-text);">*</span></label>
+                    <select id="serviceId" th:field="*{serviceId}" required th:classappend="${#fields.hasErrors('serviceId')} ? 'invalid' : ''">
+                        <option value="">-- กรุณาเลือกบริการงานพิมพ์ --</option>
+                        <option th:each="svc : ${services}"
+                                th:value="${svc.id}"
+                                th:data-price="${svc.basePrice}"
+                                th:data-type="${svc.pricingType}"
+                                th:text="${svc.name} + ' (' + ${svc.pricingType} + ' - ' + ${#numbers.formatDecimal(svc.basePrice, 1, 2)} + ' ฿/หน้า)'">
+                        </option>
+                    </select>
+                    <div class="field-error" th:if="${#fields.hasErrors('serviceId')}" th:errors="*{serviceId}"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="quantity">จำนวนที่พิมพ์ (ชุด/แผ่น) <span style="color: var(--error-text);">*</span></label>
+                        <input type="number" id="quantity" th:field="*{quantity}" min="1" required
+                               th:classappend="${#fields.hasErrors('quantity')} ? 'invalid' : ''">
+                        <div class="field-error" th:if="${#fields.hasErrors('quantity')}" th:errors="*{quantity}"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fileName">ชื่อไฟล์เอกสาร</label>
+                        <input type="text" id="fileName" th:field="*{fileName}" placeholder="เช่น project_final.pdf">
+                    </div>
+                </div>
+
+                <!-- บริการเสริม -->
+                <div class="form-group" style="margin-top: 16px;">
+                    <label style="margin-bottom: 8px;">บริการเสริม (เลือกได้มากกว่า 1 รายการ)</label>
+                    <div th:if="${addons != null and !addons.isEmpty()}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div th:each="addon : ${addons}" style="display: flex; align-items: center; gap: 8px; background: #fafbfc; border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px;">
+                            <input type="checkbox" th:field="*{addonIds}" th:value="${addon.id}"
+                                   th:id="'addon_' + ${addon.id}"
+                                   th:data-price="${addon.price}"
+                                   style="width: auto; cursor: pointer;">
+                            <label th:for="'addon_' + ${addon.id}" style="margin: 0; font-weight: normal; cursor: pointer; flex: 1;">
+                                <span th:text="${addon.name}">บริการเสริม</span>
+                                <span class="muted" style="font-size: 0.85rem;" th:text="'(+' + ${#numbers.formatDecimal(addon.price, 1, 2)} + ' ฿)'"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <p th:if="${addons == null or addons.isEmpty()}" class="muted">ไม่มีบริการเสริมในขณะนี้</p>
+                </div>
+
+                <!-- รหัสส่วนลด -->
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="promotionCode">รหัสโปรโมชัน (ถ้ามี)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="promotionCode" th:field="*{promotionCode}" placeholder="เช่น SAVE10, WELCOME" style="text-transform: uppercase;">
+                    </div>
+                    <small class="muted">ส่วนลดจะถูกตรวจสอบและคำนวณตามเงื่อนไขโปรโมชันจริงในระบบ</small>
+                </div>
+
+                <div style="margin-top: 24px;">
+                    <button type="submit" class="btn btn-block" style="padding: 12px; font-size: 1rem; font-weight: bold;">
+                        ยืนยันการสั่งพิมพ์งาน
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- กล่องข้อมูล & โปรโมชันที่ใช้งานได้ -->
+        <div>
+            <div class="card" style="border-top: 4px solid var(--primary-light);">
+                <h3 style="margin-top: 0; font-size: 1.1rem;">โปรโมชันแนะนำ</h3>
+                <div th:if="${promotions != null and !promotions.isEmpty()}">
+                    <div th:each="promo : ${promotions}" style="margin-bottom: 12px; padding: 10px; background: var(--bg); border-radius: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="color: var(--primary); cursor: pointer;"
+                                    th:onclick="'document.getElementById(\'promotionCode\').value = \'' + ${promo.code} + '\''"
+                                    th:text="${promo.code}">CODE</strong>
+                            <span class="badge badge-active"
+                                  th:text="${promo.discountType.name() == 'PERCENTAGE' ? 'ลด ' + promo.discountValue + '%' : 'ลด ' + promo.discountValue + ' ฿'}">
+                            </span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--muted); margin-top: 4px;" th:text="${promo.description}"></div>
+                    </div>
+                </div>
+                <div th:if="${promotions == null or promotions.isEmpty()}" class="muted" style="font-size: 0.9rem;">
+                    ไม่มีโปรโมชันในขณะนี้
+                </div>
+            </div>
+
+            <div class="card" style="background: #fdfdfd;">
+                <h3 style="margin-top: 0; font-size: 1.1rem;">ข้อกำหนดการสั่งพิมพ์</h3>
+                <ul style="padding-left: 20px; font-size: 0.88rem; color: var(--muted); line-height: 1.6;">
+                    <li>ระบบตรวจคำสั่งพิมพ์ผ่าน <strong>Chain of Responsibility</strong> (4 ขั้นตอน)</li>
+                    <li>รองรับไฟล์ประเภท PDF, JPEG, PNG</li>
+                    <li>จำนวนพิมพ์ต้องมากกว่า 0</li>
+                    <li>เมื่อส่งคำสั่งซื้อ สถานะเริ่มต้นคือ <code>PENDING</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

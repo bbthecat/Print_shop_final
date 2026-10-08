@@ -14,6 +14,8 @@
     <div class="nav-links">
         <!-- เพิ่มเมนูของแต่ละส่วนงานที่นี่ (บริการ / คำสั่งซื้อ / Staff) -->
         <a th:href="@{/services}">บริการงานพิมพ์</a>
+        <a sec:authorize="isAuthenticated()" th:href="@{/orders/create}">สั่งพิมพ์งาน</a>
+        <a sec:authorize="isAuthenticated()" th:href="@{/orders}">คำสั่งซื้อ</a>
         <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/services}">จัดการบริการ</a>
         <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/promotions}">จัดการโปรโมชัน</a>
         <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/users}">จัดการผู้ใช้</a>

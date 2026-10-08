@@ -15,5 +15,10 @@ public interface OrderQueryService {
             OrderStatus status,
             Pageable pageable
     );
+
+    Page<OrderResponse> getAllByUserId(
+            Long userId,
+            Pageable pageable
+    );
 }
 

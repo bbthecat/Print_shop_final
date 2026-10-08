@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('รายละเอียดคำสั่งซื้อ ' + ${order.orderNumber})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <h1 style="margin: 0;">คำสั่งซื้อ <span th:text="${order.orderNumber}">ORD-12345</span></h1>
+            <p class="muted" style="margin: 4px 0 0 0;"
+               th:text="'สั่งเมื่อ ' + ${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}">
+                01/01/2026 10:00
+            </p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <a th:href="@{'/orders/' + ${order.id} + '/tracking'}" class="btn">ติดตามสถานะงานพิมพ์</a>
+            <a th:href="@{/orders}" class="btn btn-secondary">ย้อนกลับ</a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+        <!-- รายการสินค้าและบริการ -->
+        <div class="card">
+            <h2 style="font-size: 1.25rem; margin-bottom: 16px;">รายการงานพิมพ์</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>รหัสบริการพิมพ์</th>
+                    <th style="text-align: center;">จำนวน</th>
+                    <th style="text-align: right;">ราคาต่อหน่วย</th>
+                    <th style="text-align: right;">ยอดรวม</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item, stat : ${order.items}">
+                    <td th:text="${stat.count}">1</td>
+                    <td>
+                        <strong>บริการรหัส #<span th:text="${item.serviceId}">1</span></strong>
+                        <div th:if="${item.addonIds != null and !item.addonIds.isEmpty()}" style="font-size: 0.85rem; color: var(--muted); margin-top: 4px;">
+                            บริการเสริม: <span th:each="addonId, aStat : ${item.addonIds}"
+                                              th:text="'#' + ${addonId} + (${aStat.last} ? '' : ', ')"></span>
+                        </div>
+                    </td>
+                    <td style="text-align: center;" th:text="${item.quantity}">1</td>
+                    <td style="text-align: right;" th:text="${#numbers.formatDecimal(item.unitPrice, 1, 2)} + ' ฿'">0.00 ฿</td>
+                    <td style="text-align: right; font-weight: 600;" th:text="${#numbers.formatDecimal(item.subtotal, 1, 2)} + ' ฿'">0.00 ฿</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- สรุปข้อมูลคำสั่งซื้อ -->
+        <div>
+            <div class="card">
+                <h3 style="margin-top: 0; font-size: 1.15rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                    สรุปคำสั่งซื้อ
+                </h3>
+
+                <div style="margin-bottom: 16px;">
+                    <div class="muted" style="font-size: 0.9rem;">สถานะคำสั่งซื้อ:</div>
+                    <div style="margin-top: 4px;">
+                        <span class="badge"
+                              th:classappend="${order.status.name() == 'COMPLETED'} ? 'badge-active' : (${order.status.name() == 'CANCELLED'} ? 'badge-inactive' : 'badge')"
+                              style="font-size: 0.95rem; font-weight: bold; padding: 4px 12px; background: #eef2f6;"
+                              th:text="${order.status}">PENDING</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div class="muted" style="font-size: 0.9rem;">รหัสคำสั่งซื้อ:</div>
+                    <div style="font-weight: 600; font-family: monospace; font-size: 1rem;" th:text="${order.orderNumber}">ORD-xxx</div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div class="muted" style="font-size: 0.9rem;">รหัสลูกค้า:</div>
+                    <div th:text="'User #' + ${order.userId}">User #1</div>
+                </div>
+
+                <div style="border-top: 2px dashed var(--border); padding-top: 14px; margin-top: 16px; display: flex; justify-content: space-between; align-items: baseline;">
+                    <span style="font-size: 1.1rem; font-weight: 600;">ยอดรวมสุทธิ:</span>
+                    <span style="font-size: 1.4rem; font-weight: bold; color: var(--primary);"
+                          th:text="${#numbers.formatDecimal(order.totalPrice, 1, 2)} + ' ฿'">0.00 ฿</span>
+                </div>
+
+                <div style="margin-top: 24px;">
+                    <a th:href="@{'/orders/' + ${order.id} + '/tracking'}" class="btn btn-block text-center">
+                        ติดตามสถานะ (Order Tracking)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
