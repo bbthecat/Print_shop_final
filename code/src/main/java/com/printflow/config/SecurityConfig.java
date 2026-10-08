@@ -18,7 +18,7 @@ public class SecurityConfig {
     };
 
     private static final String[] PUBLIC_PAGES = {
-            "/", "/login", "/register", "/css/**", "/error"
+            "/", "/login", "/register", "/services", "/css/**", "/error"
     };
 
     @Bean
