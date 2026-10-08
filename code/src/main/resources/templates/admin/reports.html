@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('รายงานสรุป')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <h1>รายงานสรุป</h1>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <section class="card">
+        <form th:action="@{/admin/reports}" method="get" class="inline-controls">
+            <label for="from">ตั้งแต่</label>
+            <input id="from" name="from" type="date" th:value="${report.from}">
+            <label for="to">ถึง</label>
+            <input id="to" name="to" type="date" th:value="${report.to}">
+            <button type="submit" class="btn btn-small">ดูรายงาน</button>
+        </form>
+    </section>
+
+    <div class="stats">
+        <section class="card stat">
+            <div class="muted">คำสั่งพิมพ์ทั้งหมด</div>
+            <div class="stat-value" th:text="${report.totalOrders}">0</div>
+        </section>
+        <section class="card stat">
+            <div class="muted">ยอดขาย (ชำระแล้ว)</div>
+            <div class="stat-value" th:text="${#numbers.formatDecimal(report.totalSales, 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</div>
+        </section>
+    </div>
+
+    <section class="card">
+        <h2>คำสั่งพิมพ์แยกตามสถานะ</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>สถานะ</th>
+                <th>จำนวน</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="entry : ${report.ordersByStatus}">
+                <td th:text="${entry.key}">PENDING</td>
+                <td th:text="${entry.value}">0</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="card">
+        <h2>บริการยอดนิยม (5 อันดับ)</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>อันดับ</th>
+                <th>บริการ</th>
+                <th>จำนวนที่สั่ง</th>
+                <th>ยอดรวม (บาท)</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${report.topServices.empty}">
+                <td colspan="4" class="text-center muted">ยังไม่มีคำสั่งพิมพ์ในช่วงนี้</td>
+            </tr>
+            <tr th:each="s, iter : ${report.topServices}">
+                <td th:text="${iter.count}">1</td>
+                <td th:text="${s.serviceName}">ถ่ายเอกสารขาวดำ</td>
+                <td th:text="${s.totalQuantity}">0</td>
+                <td th:text="${#numbers.formatDecimal(s.totalSales, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
