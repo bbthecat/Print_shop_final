@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('การแจ้งเตือน')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <h1>การแจ้งเตือน</h1>
+    <p class="muted" th:text="'ยังไม่ได้อ่าน ' + ${unreadCount} + ' รายการ'">ยังไม่ได้อ่าน 0 รายการ</p>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="card" th:each="n : ${notifications.content}">
+        <h3 th:text="${n.title()}">หัวข้อ</h3>
+        <p th:text="${n.message()}">ข้อความ</p>
+        <p class="muted" th:text="${#temporals.format(n.createdAt(), 'dd/MM/yyyy HH:mm')}">-</p>
+        <form th:if="${!n.read()}"
+              th:action="@{/notifications/{id}/read(id=${n.id()})}"
+              method="post">
+            <button type="submit" class="btn btn-small">ทำเครื่องหมายว่าอ่านแล้ว</button>
+        </form>
+        <span th:if="${n.read()}" class="badge badge-active">อ่านแล้ว</span>
+    </div>
+
+    <p class="text-center muted" th:if="${notifications.isEmpty()}">ยังไม่มีการแจ้งเตือน</p>
+
+    <div class="pagination" th:if="${notifications.totalPages > 1}">
+        <a th:if="${!notifications.first}" th:href="@{/notifications(page=${notifications.number - 1})}">ก่อนหน้า</a>
+        <span th:text="${notifications.number + 1} + ' / ' + ${notifications.totalPages}">1 / 1</span>
+        <a th:if="${!notifications.last}" th:href="@{/notifications(page=${notifications.number + 1})}">ถัดไป</a>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

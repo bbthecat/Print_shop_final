@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('รายละเอียดคำสั่งซื้อ')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <h1 th:text="'คำสั่งซื้อ ' + ${order.orderNumber()}">คำสั่งซื้อ</h1>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="card">
+        <p>สถานะปัจจุบัน: <span class="badge" th:text="${order.status()}">PENDING</span></p>
+        <p>ลูกค้า (user id): <span th:text="${order.userId()}">1</span></p>
+        <p>ยอดรวม: <span th:text="${order.totalPrice()}">0.00</span> บาท</p>
+        <p>วันที่สั่ง: <span th:text="${#temporals.format(order.createdAt(), 'dd/MM/yyyy HH:mm')}">-</span></p>
+    </div>
+
+    <h2>รายการงานพิมพ์</h2>
+    <table class="card">
+        <thead>
+        <tr>
+            <th>service id</th>
+            <th>จำนวน</th>
+            <th>ราคา/หน่วย</th>
+            <th>รวม</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="item : ${order.items()}">
+            <td th:text="${item.serviceId()}">-</td>
+            <td th:text="${item.quantity()}">0</td>
+            <td th:text="${item.unitPrice()}">0.00</td>
+            <td th:text="${item.subtotal()}">0.00</td>
+        </tr>
+        <tr th:if="${order.items().isEmpty()}">
+            <td colspan="4" class="text-center muted">ไม่มีรายการ</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>เปลี่ยนสถานะ</h2>
+    <form th:action="@{/staff/orders/{id}/status(id=${order.id()})}" method="post" class="inline-controls">
+        <select name="status">
+            <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}">CONFIRMED</option>
+        </select>
+        <button type="submit" class="btn">บันทึก</button>
+    </form>
+
+    <h2>ประวัติการเปลี่ยนสถานะ</h2>
+    <table class="card">
+        <thead>
+        <tr>
+            <th>จาก</th>
+            <th>เป็น</th>
+            <th>โดย (user id)</th>
+            <th>เมื่อ</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="h : ${histories}">
+            <td th:text="${h.oldStatus()}">-</td>
+            <td th:text="${h.newStatus()}">-</td>
+            <td th:text="${h.changedBy()}">-</td>
+            <td th:text="${#temporals.format(h.changedAt(), 'dd/MM/yyyy HH:mm')}">-</td>
+        </tr>
+        <tr th:if="${histories.isEmpty()}">
+            <td colspan="4" class="text-center muted">ยังไม่มีการเปลี่ยนสถานะ</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <a class="btn btn-secondary" th:href="@{/staff/orders}">กลับไปรายการ</a>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
