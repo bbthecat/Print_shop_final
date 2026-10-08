@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('จัดการบริการงานพิมพ์ (Admin)')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 style="margin: 0;">จัดการบริการและบริการเสริม (Admin)</h1>
+        <div>
+            <a th:href="@{/admin/promotions}" class="btn btn-secondary">จัดการโปรโมชัน →</a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <!-- ส่วนที่ 1: บริการงานพิมพ์หลัก (Print Services) -->
+    <section style="margin-bottom: 40px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h2 style="margin: 0;">1. บริการงานพิมพ์หลัก</h2>
+        </div>
+
+        <details class="card" th:open="${openServiceForm}">
+            <summary><strong>+ เพิ่มบริการงานพิมพ์ใหม่</strong></summary>
+            <form th:action="@{/admin/services}" th:object="${serviceForm}" method="post" style="margin-top: 16px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">ชื่อบริการ</label>
+                        <input th:field="*{name}" type="text" placeholder="เช่น Document B&W A4"
+                               th:classappend="${#fields.hasErrors('name')} ? 'invalid'">
+                        <div class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="pricingType">ประเภทราคา</label>
+                        <select th:field="*{pricingType}">
+                            <option value="BLACK_WHITE">BLACK_WHITE (ขาวดำ)</option>
+                            <option value="COLOR">COLOR (สี)</option>
+                            <option value="PHOTO">PHOTO (ภาพถ่าย)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="basePrice">ราคาเริ่มต้น (บาท/หน้า)</label>
+                        <input th:field="*{basePrice}" type="number" step="0.25" placeholder="1.50"
+                               th:classappend="${#fields.hasErrors('basePrice')} ? 'invalid'">
+                        <div class="field-error" th:if="${#fields.hasErrors('basePrice')}" th:errors="*{basePrice}"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">รายละเอียดเพิ่มเติม</label>
+                        <input th:field="*{description}" type="text" placeholder="คำอธิบายสั้นๆ">
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <button type="submit" class="btn">บันทึกบริการ</button>
+                </div>
+            </form>
+        </details>
+
+        <div class="card" style="padding: 0; overflow-x: auto;">
+            <table class="table" style="margin: 0; width: 100%;">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ชื่อบริการ</th>
+                    <th>ประเภทราคา</th>
+                    <th style="text-align: right;">ราคาเริ่มต้น</th>
+                    <th>สถานะ</th>
+                    <th style="text-align: center;">จัดการ</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="svc : ${services}">
+                    <td th:text="${svc.id}">1</td>
+                    <td><strong th:text="${svc.name}">Name</strong></td>
+                    <td><span class="badge" th:text="${svc.pricingType}">TYPE</span></td>
+                    <td style="text-align: right; font-weight: bold;"
+                        th:text="${#numbers.formatDecimal(svc.basePrice, 1, 2)} + ' ฿'">0.00 ฿</td>
+                    <td>
+                        <span th:if="${svc.active}" class="badge badge-success">เปิดใช้งาน</span>
+                        <span th:unless="${svc.active}" class="badge badge-muted">ปิดใช้งาน</span>
+                    </td>
+                    <td style="text-align: center;">
+                        <form th:if="${svc.active}" th:action="@{/admin/services/{id}/deactivate(id=${svc.id})}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-secondary" onclick="return confirm('ต้องการปิดการใช้งานบริการนี้หรือไม่?')">ปิดใช้งาน</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${services == null or services.isEmpty()}">
+                    <td colspan="6" class="text-center muted" style="padding: 24px;">ไม่มีข้อมูลบริการพิมพ์</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ส่วนที่ 2: บริการเสริม (Addon Services) -->
+    <section>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h2 style="margin: 0;">2. บริการเสริม (Addons)</h2>
+        </div>
+
+        <details class="card" th:open="${openAddonForm}">
+            <summary><strong>+ เพิ่มบริการเสริมใหม่</strong></summary>
+            <form th:action="@{/admin/services/addons}" th:object="${addonForm}" method="post" style="margin-top: 16px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">ชื่อบริการเสริม</label>
+                        <input th:field="*{name}" type="text" placeholder="เช่น เข้าเล่มสันเกลียว"
+                               th:classappend="${#fields.hasErrors('name')} ? 'invalid'">
+                        <div class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="price">ราคา (บาท)</label>
+                        <input th:field="*{price}" type="number" step="0.50" placeholder="25.00"
+                               th:classappend="${#fields.hasErrors('price')} ? 'invalid'">
+                        <div class="field-error" th:if="${#fields.hasErrors('price')}" th:errors="*{price}"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">รายละเอียดเพิ่มเติม</label>
+                    <input th:field="*{description}" type="text" placeholder="เช่น สันกระดูกงูพร้อมปกใส">
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <button type="submit" class="btn">บันทึกบริการเสริม</button>
+                </div>
+            </form>
+        </details>
+
+        <div class="card" style="padding: 0; overflow-x: auto;">
+            <table class="table" style="margin: 0; width: 100%;">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ชื่อบริการเสริม</th>
+                    <th>รายละเอียด</th>
+                    <th style="text-align: right;">ราคา</th>
+                    <th>สถานะ</th>
+                    <th style="text-align: center;">จัดการ</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="addon : ${addons}">
+                    <td th:text="${addon.id}">1</td>
+                    <td><strong th:text="${addon.name}">Name</strong></td>
+                    <td class="muted" th:text="${addon.description != null ? addon.description : '-'}">-</td>
+                    <td style="text-align: right; font-weight: bold;"
+                        th:text="${#numbers.formatDecimal(addon.price, 1, 2)} + ' ฿'">0.00 ฿</td>
+                    <td>
+                        <span th:if="${addon.active}" class="badge badge-success">เปิดใช้งาน</span>
+                        <span th:unless="${addon.active}" class="badge badge-muted">ปิดใช้งาน</span>
+                    </td>
+                    <td style="text-align: center;">
+                        <form th:if="${addon.active}" th:action="@{/admin/services/addons/{id}/deactivate(id=${addon.id})}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-secondary" onclick="return confirm('ต้องการปิดการใช้งานบริการเสริมนี้หรือไม่?')">ปิดใช้งาน</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${addons == null or addons.isEmpty()}">
+                    <td colspan="6" class="text-center muted" style="padding: 24px;">ไม่มีข้อมูลบริการเสริม</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

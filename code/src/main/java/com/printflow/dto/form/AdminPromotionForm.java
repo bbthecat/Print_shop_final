@@ -1,0 +1,42 @@
+package com.printflow.dto.form;
+
+import com.printflow.domain.enums.DiscountType;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+public class AdminPromotionForm {
+
+    @NotBlank(message = "กรุณากรอกรหัสโปรโมชัน")
+    @Size(max = 50, message = "รหัสโปรโมชันต้องไม่เกิน 50 ตัวอักษร")
+    private String code;
+
+    private String description;
+
+    @NotNull(message = "กรุณาเลือกประเภทส่วนลด")
+    private DiscountType discountType = DiscountType.PERCENTAGE;
+
+    @NotNull(message = "กรุณาระบุมูลค่าส่วนลด")
+    @DecimalMin(value = "0.01", message = "มูลค่าส่วนลดต้องมากกว่า 0")
+    private BigDecimal discountValue;
+
+    @DecimalMin(value = "0.00", inclusive = true, message = "ยอดสั่งซื้อขั้นต่ำต้องมากกว่าหรือเท่ากับ 0")
+    private BigDecimal minOrderAmount = BigDecimal.ZERO;
+
+    @NotNull(message = "กรุณาระบุวันเริ่มต้น")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    private LocalDateTime startDate;
+
+    @NotNull(message = "กรุณาระบุวันสิ้นสุด")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    private LocalDateTime endDate;
+}

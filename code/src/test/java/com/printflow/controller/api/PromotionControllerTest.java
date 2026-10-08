@@ -93,7 +93,7 @@ class PromotionControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     void create_whenValid_shouldReturn201() throws Exception {
         Promotion promo = new Promotion();
         promo.setId(1L);
@@ -130,7 +130,7 @@ class PromotionControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     void delete_shouldReturn204() throws Exception {
         mockMvc.perform(delete("/api/v1/promotions/1")
                         .with(csrf()))
