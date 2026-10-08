@@ -1,5 +1,27 @@
 # Design Patterns
 
+
+ทีมเลือกใช้ GoF กลุ่ม **Behavioral** จำนวน 4 pattern (ข้อกำหนดขั้นต่ำ 3)
+
+| Pattern | ปัญหาที่แก้ | ไฟล์/คลาสหลัก | Diagram |
+|---|---|---|---|
+| Strategy | สูตรคำนวณราคาต่างกันตามประเภทงานพิมพ์ และส่วนลดมี 2 แบบ ถ้ารวมเป็น if-else ต้องแก้โค้ดเดิมทุกครั้งที่เพิ่มประเภท | `service/strategy/pricing/PricingStrategy` + 3 implementation, `PricingStrategyResolver`, `service/strategy/discount/DiscountStrategy` + 2 implementation | [class-diagram.png](diagrams/class-diagram.png) |
+| State | Order มี 6 สถานะ แต่ละสถานะอนุญาต action ต่างกัน ถ้าตรวจด้วย if-else กฎจะกระจายไปทุกเมธอดที่แตะสถานะ | `service/state/OrderState`, `AbstractOrderState`, คลาสของทั้ง 6 สถานะ, `OrderStateResolver` | [state-diagram.md](diagrams/state-diagram.md) |
+| Observer | เปลี่ยนสถานะครั้งเดียวต้องทำงานตามหลายอย่าง (บันทึกประวัติ + แจ้งเตือน) ถ้าเขียนรวมใน service คลาสเดียวจะรับผิดชอบหลายเรื่อง | `service/event/OrderStatusChangedEvent`, `service/listener/OrderHistoryListener`, `InAppNotificationListener` | [status-change-sequence.png](diagrams/status-change-sequence.png) |
+| Chain of Responsibility | การสร้าง Order ต้องผ่านการตรวจหลายเงื่อนไขที่ไม่เกี่ยวข้องกัน ถ้ารวมในเมธอดเดียวจะยาวและทดสอบยาก | `validation/OrderValidationHandler` + handler ทั้งหมด, `config/OrderValidationChainConfig` | [create-order-sequence.png](diagrams/create-order-sequence.png) |
+
+**Enterprise / Architectural Patterns ที่ใช้**
+
+| Pattern | ใช้ที่ไหน |
+|---|---|
+| Layered Architecture | `controller/` → `service/` → `repository/` → `domain/` |
+| MVC | Thymeleaf controller ใน `controller/web/` + template ใน `resources/templates/` |
+| Repository Pattern | Spring Data JPA ทุกตัวใน `repository/` |
+| Service Layer Pattern | business logic และ `@Transactional` อยู่ใน `service/impl/` |
+| DTO Pattern | `dto/request/` และ `dto/response/` ไม่ส่ง entity ออก API ตรง ๆ |
+| Mapper | `mapper/OrderMapper`, `mapper/PaymentMapper`, `mapper/CustomerMapper` |
+| Dependency Injection | Constructor Injection ทุกคลาส ไม่มี `@Autowired` บน field |
+
 ## Strategy (P2)
 
 ### ปัญหาที่แก้
@@ -216,4 +238,4 @@ Listener ใช้ตารางนี้สร้าง `title` และ `mes
 ### SOLID ที่เกี่ยวข้อง
 - **SRP (Single Responsibility Principle):** แต่ละ Handler รับผิดชอบตรวจสอบกฎเพียงเรื่องเดียวอย่างชัดเจน
 - **OCP (Open/Closed Principle):** เพิ่มกฎการตรวจสอบใหม่ได้โดยการสร้าง Handler คลาสใหม่และต่อเข้ากับ Chain ใน Config โดยไม่ต้องแก้ไขโค้ดของ `OrderCommandService`
-- **DIP (Dependency Inversion Principle):** `OrderCommandService` พึ่งพา Abstraction (`OrderValidationHandler`) แทนที่จะผูกติดกับ Concrete Handler ตัวใดตัวหนึ่งโดยตรง
+- **DIP (Dependency Inversion Principle):** `OrderCommandService` พึ่งพา Abstraction (`OrderValidationHandler`) แทนที่จะผูกติดกับ Concrete Handler ตัวใดตัวหนึ่งโดยตรง
