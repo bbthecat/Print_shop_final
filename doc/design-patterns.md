@@ -29,11 +29,12 @@
 | `service/strategy/discount/DiscountStrategyResolver.java` | Resolver (Context Helper) | จับคู่ `DiscountType` กับ Strategy ผ่าน Map Lookup |
 
 ### ตารางสูตรคำนวณราคาพิมพ์หลัก (Pricing Strategy)
-| PricingType | สูตรคำนวณ | ตัวอย่างการคำนวณ |
-|---|---|---|
-| `BLACK_WHITE` | `(basePrice × pageCount) × copyCount` | ขาวดำ 1.50 บ./หน้า, 20 หน้า, 2 ชุด = (1.50 × 20) × 2 = **60.00 บาท** |
-| `COLOR` | `(basePrice × pageCount) × copyCount` | พิมพ์สี 5.00 บ./หน้า, 10 หน้า, 3 ชุด = (5.00 × 10) × 3 = **150.00 บาท** |
-| `PHOTO` | `(basePrice × pageCount) × copyCount` | พิมพ์รูป 15.00 บ./หน้า, 5 หน้า, 1 ชุด = (15.00 × 5) × 1 = **75.00 บาท** |
+สูตรการคำนวณของแต่ละ Strategy แตกต่างกันจริงตามลักษณะและโมเดลธุรกิจของงานพิมพ์แต่ละประเภท:
+| PricingType | สูตรคำนวณ | เงื่อนไขเฉพาะ / จุดเด่นของ Strategy | ตัวอย่างการคำนวณ |
+|---|---|---|---|
+| `BLACK_WHITE` | `(basePrice × pageCount) × copyCount` | คิดราคาตามจริงเชิงเส้น เหมาะกับเอกสารและรายงานทั่วไป | ขาวดำ 1.50 บ./หน้า, 20 หน้า, 2 ชุด = (1.50 × 20) × 2 = **60.00 บาท** |
+| `COLOR` | `(basePrice × pageCount) × copyCount` *(หาก pageCount > 50 ได้รับส่วนลด 10%)* | มี **Volume Discount** สำหรับงานพิมพ์สีชุดหนา เพื่อสนับสนุนงานพิมพ์เล่มใหญ่ | พิมพ์สี 5.00 บ./หน้า, 60 หน้า, 1 ชุด = (5.00 × 60) = 300 บ. ลด 10% = **270.00 บาท** |
+| `PHOTO` | `basePrice × copyCount` | **คิดราคาต่อแผ่นรูปภาพ ไม่คูณจำนวนหน้า** เพราะเป็นงานอัดรูปแผ่นเดี่ยวบนกระดาษโฟโต้คุณภาพสูง | พิมพ์รูป 15.00 บ./แผ่น, 3 แผ่น (copyCount = 3) = 15.00 × 3 = **45.00 บาท** |
 
 ### บริการเสริม (Addon Services)
 บริการเสริมคิดราคาต่อชุด (Copy) โดยรวมเข้ากับราคางานพิมพ์ใน `PricingCalculator.calculateItemTotal()`:
@@ -60,6 +61,7 @@ $$\text{Item Total} = \text{PrintPrice} + \sum (\text{AddonPrice} \times \text{c
 3. **ยอดสั่งซื้อขั้นต่ำ:** โปรโมชันจะใช้ได้เมื่อยอดสั่งซื้อ $\ge$ `minOrderAmount`
 4. **ช่วงเวลาที่ใช้งานได้:** ตรวจสอบ `startDate` และ `endDate` เทียบกับเวลาปัจจุบัน พร้อมสถานะ `active = true`
 5. **รหัสต้องไม่ซ้ำ:** โค้ดโปรโมชันต้องเป็นตัวพิมพ์ใหญ่และไม่ซ้ำกัน (`UNIQUE`)
+6. **ส่วนลดเปอร์เซ็นต์ต้องไม่เกิน 100%:** โปรโมชันประเภท `PERCENTAGE` กำหนดให้ `discountValue` อยู่ระหว่าง 0.01 ถึง 100.00% เท่านั้น (มี Validation ควบคุมทั้งระดับ DTO Request, Controller Form และ Service Layer)
 
 ### การวิเคราะห์ตามหลักการ SOLID
 * **SRP (Single Responsibility Principle):** แต่ละ Concrete Strategy รับผิดชอบเพียงสูตรคำนวณเฉพาะประเภทของตนเองเท่านั้น ไม่ยุ่งเกี่ยวกับคลังข้อมูลหรือ Web Controller

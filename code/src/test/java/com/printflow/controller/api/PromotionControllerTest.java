@@ -131,6 +131,28 @@ class PromotionControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void create_whenPercentageExceeds100_shouldReturn400() throws Exception {
+        String json = """
+                {
+                    "code": "OVER100",
+                    "description": "Too much discount",
+                    "discountType": "PERCENTAGE",
+                    "discountValue": 150.00,
+                    "minOrderAmount": 0.00,
+                    "startDate": "2026-01-01T00:00:00",
+                    "endDate": "2026-12-31T23:59:59"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/promotions")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void delete_shouldReturn204() throws Exception {
         mockMvc.perform(delete("/api/v1/promotions/1")
                         .with(csrf()))
