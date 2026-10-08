@@ -27,8 +27,12 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       PORT: 8080
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@printflow.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin1234}
     ports:
       - "8080:8080"
 
 volumes:
   postgres_data:
+  

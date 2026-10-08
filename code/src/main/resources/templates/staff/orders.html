@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('จัดการคำสั่งซื้อ')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <h1>จัดการคำสั่งซื้อ</h1>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <form th:action="@{/staff/orders}" method="get" class="inline-controls">
+        <select name="status">
+            <option value="">ทุกสถานะ</option>
+            <option th:each="s : ${statuses}"
+                    th:value="${s}"
+                    th:text="${s}"
+                    th:selected="${s == selectedStatus}">PENDING</option>
+        </select>
+        <button type="submit" class="btn btn-small">กรอง</button>
+    </form>
+
+    <table class="card">
+        <thead>
+        <tr>
+            <th>เลขที่</th>
+            <th>ลูกค้า</th>
+            <th>สถานะ</th>
+            <th>ยอดรวม</th>
+            <th>วันที่สั่ง</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="order : ${orders.content}">
+            <td th:text="${order.orderNumber()}">ORD-001</td>
+            <td th:text="${order.userId()}">1</td>
+            <td><span class="badge" th:text="${order.status()}">PENDING</span></td>
+            <td th:text="${order.totalPrice()}">0.00</td>
+            <td th:text="${#temporals.format(order.createdAt(), 'dd/MM/yyyy HH:mm')}">-</td>
+            <td>
+                <a class="btn btn-small" th:href="@{/staff/orders/{id}(id=${order.id()})}">ดูรายละเอียด</a>
+            </td>
+        </tr>
+        <tr th:if="${orders.isEmpty()}">
+            <td colspan="6" class="text-center muted">ไม่มีคำสั่งซื้อ</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="pagination" th:if="${orders.totalPages > 1}">
+        <a th:if="${!orders.first}"
+           th:href="@{/staff/orders(page=${orders.number - 1}, status=${selectedStatus})}">ก่อนหน้า</a>
+        <span th:text="${orders.number + 1} + ' / ' + ${orders.totalPages}">1 / 1</span>
+        <a th:if="${!orders.last}"
+           th:href="@{/staff/orders(page=${orders.number + 1}, status=${selectedStatus})}">ถัดไป</a>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
