@@ -2,90 +2,69 @@
 !pragma layout smetana
 skinparam defaultFontName Tahoma
 skinparam shadowing false
-skinparam componentStyle uml2
+skinparam componentStyle rectangle
+skinparam ArrowColor #2E5C8A
 skinparam component {
   BackgroundColor #EEF4FB
   BorderColor #2E5C8A
 }
 skinparam package {
   BorderColor #1F3A5F
+  FontColor #1F3A5F
 }
+skinparam database {
+  BackgroundColor #FFF4E5
+  BorderColor #B26A00
+}
+top to bottom direction
 
-title PrintFlow — Component Diagram
+title PrintFlow — Component Diagram (Layered Architecture)
 
-actor "Browser\n(Customer / Staff / Admin)" as Browser
-actor "API Client\n(Swagger UI)" as ApiClient
+actor "Browser / API Client" as Client
 
 package "PrintFlow (Spring Boot 3)" {
 
-  package "Presentation Layer" {
-    [Web Controllers\n(controller/web)\nThymeleaf MVC] as WebCtl
-    [REST Controllers\n(controller/api)\n/api/v1/**] as ApiCtl
-    [GlobalExceptionHandler\n(@RestControllerAdvice)] as ExHandler
-  }
-
-  package "Security" {
-    [SecurityFilterChain\n(form login + HTTP Basic,\nrole-based)] as Sec
+  package "Security" as SecLayer {
+    [SecurityFilterChain\nform login + HTTP Basic + roles] as Sec
     [UserDetailsServiceImpl\nCurrentUserProvider] as SecUser
   }
 
-  package "Service Layer" {
-    [Customer / AdminUser\nService] as UserSvc
-    [Service Catalog\n+ Pricing / Discount\nStrategy] as CatalogSvc
-    [Order Query / Command\n+ Validation Chain] as OrderSvc
-    [OrderStatusService\n(State)] as StatusSvc
-    [Event Listeners\n(Observer)] as Listeners
-    [Payment / Notification\nService] as PayNotiSvc
-    [FileStorageService] as FileSvc
-    [ReportService] as ReportSvc
+  package "Presentation Layer" as PresLayer {
+    [Web Controllers\n(Thymeleaf)] as WebCtl
+    [REST Controllers\n/api/v1/**] as ApiCtl
+    [GlobalExceptionHandler] as ExHandler
   }
 
-  package "Data Access" {
-    [Spring Data JPA\nRepositories] as Repo
+  package "Service Layer" as SvcLayer {
+    [Customer / AdminUser] as UserSvc
+    [Service Catalog\n<<Strategy>>] as CatalogSvc
+    [Order + Validation\n<<Chain of Responsibility>>] as OrderSvc
+    [OrderStatus\n<<State>>] as StatusSvc
+    [Status Listeners\n<<Observer>>] as Listeners
+    [Payment / Notification\nReport / File] as OtherSvc
+  }
+
+  package "Data Access Layer" as DataLayer {
     [DTO + Mapper] as Mapper
+    [Spring Data JPA\nRepositories] as Repo
+    [Flyway Migrations] as Flyway
   }
-
-  [Flyway Migrations] as Flyway
 }
 
-database "PostgreSQL\n(Neon)" as DB
-folder "File Storage\n(uploads/)" as Disk
+database "PostgreSQL (Neon)" as DB
 
-Browser --> Sec : HTTPS
-ApiClient --> Sec : HTTPS + Basic Auth
-Sec --> WebCtl
-Sec --> ApiCtl
+Client --> Sec : HTTPS
 Sec ..> SecUser
-ApiCtl ..> ExHandler : exceptions
-
-WebCtl --> UserSvc
-WebCtl --> CatalogSvc
-WebCtl --> OrderSvc
-WebCtl --> StatusSvc
-ApiCtl --> UserSvc
-ApiCtl --> CatalogSvc
-ApiCtl --> OrderSvc
-ApiCtl --> StatusSvc
-ApiCtl --> PayNotiSvc
-ApiCtl --> ReportSvc
-
-OrderSvc --> CatalogSvc : คำนวณราคา
-OrderSvc --> PayNotiSvc : สร้าง Payment UNPAID
-OrderSvc --> FileSvc
-StatusSvc ..> Listeners : OrderStatusChangedEvent
-Listeners --> PayNotiSvc
-
-UserSvc --> Repo
-CatalogSvc --> Repo
-OrderSvc --> Repo
-StatusSvc --> Repo
-PayNotiSvc --> Repo
-ReportSvc --> Repo
-UserSvc ..> Mapper
-OrderSvc ..> Mapper
-
+Sec -down-> WebCtl
+Sec -down-> ApiCtl
+ApiCtl .right.> ExHandler : exception
+WebCtl -down-> UserSvc : เรียกผ่าน interface
+ApiCtl -down-> OrderSvc : เรียกผ่าน interface
+OrderSvc -right-> CatalogSvc : คำนวณราคา
+StatusSvc .right.> Listeners : event
+UserSvc -down-> Mapper
+OrderSvc -down-> Repo
 Repo --> DB : JDBC
-Flyway --> DB : schema V1..Vn
-FileSvc --> Disk
+Flyway --> DB : migrate
 
 @enduml
