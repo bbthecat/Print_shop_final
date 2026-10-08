@@ -5,11 +5,9 @@ import com.printflow.domain.enums.PaymentMethod;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.math.BigDecimal;
-
 public interface PaymentService {
 
-    Payment createUnpaid(Long orderId, BigDecimal amount);
+    Payment createUnpaid(Long orderId);
 
     Payment findByOrderId(Long orderId);
 
