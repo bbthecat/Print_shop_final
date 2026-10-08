@@ -43,6 +43,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/promotions", "/api/v1/promotions/**").authenticated()
                         .requestMatchers(CATALOG_PATHS).hasRole(ADMIN)
                         .requestMatchers("/api/v1/promotions", "/api/v1/promotions/**").hasRole(ADMIN)
+                        // ลูกค้าสร้าง/ดู order ได้ แต่ดูทั้งหมด เปลี่ยนสถานะ และบันทึกชำระเงินได้เฉพาะ STAFF/ADMIN
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/orders/**").hasRole(ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders").hasAnyRole(STAFF, ADMIN)
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/orders/*/status").hasAnyRole(STAFF, ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/payment").hasAnyRole(STAFF, ADMIN)
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/orders/*/payment").hasAnyRole(STAFF, ADMIN)
                         .requestMatchers("/api/v1/reports/**", "/api/v1/admin/**", "/admin/**").hasRole(ADMIN)
                         .requestMatchers("/staff/**").hasAnyRole(STAFF, ADMIN)
                         .anyRequest().authenticated())
