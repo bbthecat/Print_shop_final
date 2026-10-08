@@ -11,6 +11,7 @@ import com.printflow.dto.request.OrderCreateRequest;
 import com.printflow.dto.request.OrderItemRequest;
 import com.printflow.dto.response.OrderResponse;
 import com.printflow.exception.ResourceNotFoundException;
+import com.printflow.exception.ValidationException;
 import com.printflow.mapper.OrderMapper;
 import com.printflow.repository.OrderPromotionRepository;
 import com.printflow.repository.OrderRepository;
@@ -19,6 +20,8 @@ import com.printflow.repository.PrintItemRepository;
 import com.printflow.service.PromotionService;
 import com.printflow.service.ServiceCatalogQueryService;
 import com.printflow.service.strategy.pricing.PricingCalculator;
+import com.printflow.validation.OrderValidationContext;
+import com.printflow.validation.OrderValidationHandler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -62,6 +65,9 @@ class OrderCommandServiceTest {
 
     @Mock
     private OrderMapper orderMapper;
+
+    @Mock
+    private OrderValidationHandler orderValidationChain;
 
     @InjectMocks
     private OrderCommandServiceImpl orderCommandService;
@@ -120,6 +126,9 @@ class OrderCommandServiceTest {
                 orderCommandService.createOrder(request);
 
         assertEquals(response, result);
+
+        verify(orderValidationChain)
+                .handle(any(OrderValidationContext.class));
 
         verify(orderRepository, times(2))
                 .save(any());
@@ -207,7 +216,10 @@ class OrderCommandServiceTest {
 
         assertEquals(response, result);
 
-        verify(promotionService)
+        verify(orderValidationChain)
+                .handle(any(OrderValidationContext.class));
+
+        verify(promotionService, atLeastOnce())
                 .findValidByCode("SAVE10");
 
         verify(orderPromotionRepository)
@@ -218,6 +230,30 @@ class OrderCommandServiceTest {
 
         verify(orderMapper)
                 .toResponse(any(), any(), any());
+    }
+
+    @Test
+    void shouldThrowWhenValidationFails() {
+        OrderItemRequest itemRequest =
+                new OrderItemRequest(1L, 0, List.of());
+        OrderCreateRequest request =
+                new OrderCreateRequest(100L, List.of(itemRequest), null);
+
+        doThrow(new ValidationException("Quantity must be greater than 0"))
+                .when(orderValidationChain)
+                .handle(any(OrderValidationContext.class));
+
+        assertThrows(
+                ValidationException.class,
+                () -> orderCommandService.createOrder(request)
+        );
+
+        verify(orderValidationChain)
+                .handle(any(OrderValidationContext.class));
+        verify(orderRepository, never())
+                .save(any());
+        verify(printItemRepository, never())
+                .save(any());
     }
 
     @Test

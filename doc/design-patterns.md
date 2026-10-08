@@ -156,3 +156,64 @@ Listener ใช้ตารางนี้สร้าง `title` และ `mes
 - สถานะ PENDING ไม่สร้างการแจ้งเตือน เพราะเป็นสถานะตั้งต้นตอนลูกค้าสร้างคำสั่งซื้อเอง
 - `is_read` เริ่มต้นเป็น `false` เสมอ
 - การสร้างแจ้งเตือนล้มเหลวต้องไม่ทำให้การเปลี่ยนสถานะล้มเหลวตาม
+
+---
+
+## Chain of Responsibility (P3)
+
+### ปัญหาที่แก้
+การตรวจสอบข้อมูลก่อนสร้างคำสั่งซื้อ (Order Validation) มีหลายขั้นตอนและหลายเงื่อนไข:
+- บริการที่สั่งพิมพ์ยังเปิดให้บริการอยู่หรือไม่
+- ประเภทไฟล์เอกสารตรงตามข้อกำหนดหรือไม่ (PDF, JPEG, PNG)
+- จำนวนที่สั่งพิมพ์ถูกต้องหรือไม่ (ห้ามเป็นศูนย์หรือติดลบ)
+- รหัสโปรโมชันที่ระบุถูกต้องและยังไม่หมดอายุหรือไม่
+
+หากเขียนตรวจสอบทั้งหมดรวมกันใน `OrderCommandService` คลาสเดียวด้วย `if-else` ก้อนใหญ่:
+- ฝ่าฝืน **Single Responsibility Principle (SRP)** เพราะ Service ต้องแบกรับตรรกะการตรวจสอบข้อมูลทุกประเภท
+- ฝ่าฝืน **Open/Closed Principle (OCP)** เพราะทุกครั้งที่มีกฎการตรวจสอบใหม่ (เช่น เพิ่มการตรวจขนาดไฟล์ หรือความละเอียดภาพ) จะต้องกลับมาแก้ Service เดิม
+- โค้ดยากต่อการทดสอบแยกส่วน (Unit Test)
+
+### แนวทาง
+ใช้ **Chain of Responsibility (GoF Behavioral Pattern)**:
+1. กำหนด `OrderValidationHandler` เป็น Abstract Base Handler มีพอยน์เตอร์ `next` และเมธอด `handle(OrderValidationContext context)`
+2. ห่อหุ้มข้อมูลคำสั่งซื้อที่ต้องใช้ตรวจสอบไว้ใน `OrderValidationContext`
+3. แยกกฎการตรวจสอบแต่ละเรื่องออกเป็น Handler เฉพาะตัว 4 ตัว
+4. หากการตรวจสอบใน Handler ตัวใดไม่ผ่าน จะโยน `ValidationException` ทันที และหยุดการทำงานของ Chain
+5. หากผ่าน จะส่งต่อให้ Handler ถัดไปด้วย `next.handle(context)`
+6. การประกอบสาย Chain ทำผ่าน Spring `@Configuration` (`OrderValidationChainConfig`) และ Inject เข้า `OrderCommandService` ผ่าน Constructor Injection
+
+### ลำดับ Chain การตรวจสอบ (Validation Flow)
+
+```
+[Request] → ServiceAvailabilityHandler → FileTypeValidationHandler → QuantityValidationHandler → PromotionValidityHandler → [Save Order]
+                     ↓                              ↓                          ↓                           ↓
+            (โยน 400 ถ้าไม่พบ/ปิด)       (โยน 400 ถ้าไฟล์ผิด)         (โยน 400 ถ้า quantity<=0)   (โยน 400 ถ้าโปรโมชันหมดอายุ)
+```
+
+| ลำดับ | Handler | สิ่งที่ตรวจสอบ | ข้อยกเว้น/ข้อความ Error |
+|---|---|---|---|
+| 1 | `ServiceAvailabilityHandler` | ตรวจสอบว่า `serviceId` ของทุก Item มีอยู่จริงและ `active = true` ผ่าน `ServiceCatalogQueryService` | `ValidationException` / `ResourceNotFoundException` ("Service not found with ID: {id}") |
+| 2 | `FileTypeValidationHandler` | ตรวจสอบ Mime Type ของไฟล์ที่แนบ รองรับเฉพาะ `application/pdf`, `image/jpeg`, `image/png` | `ValidationException` ("File type is not supported: {type}") |
+| 3 | `QuantityValidationHandler` | ตรวจสอบว่าจำนวน `quantity` ของแต่ละ Item ต้องมากกว่า 0 | `ValidationException` ("Quantity must be greater than 0") |
+| 4 | `PromotionValidityHandler` | ตรวจสอบโปรโมชัน (ถ้ามี) ว่ามีอยู่จริง, `active = true`, และวันเวลาปัจจุบันอยู่ในช่วง `startDate` ถึง `endDate` | `ValidationException` ("Promotion is inactive: {code}" หรือ "Promotion is not valid at this time: {code}") |
+
+### ไฟล์/คลาสที่ใช้
+| ไฟล์ | หน้าที่ |
+|---|---|
+| `validation/OrderValidationHandler.java` | Abstract Base Class จัดการ `setNext()` และส่งต่อ `handle()` |
+| `validation/OrderValidationContext.java` | Data Context รวบรวม Order, Items, Files, Promotions ที่ใช้ส่งต่อใน Chain |
+| `validation/ServiceAvailabilityHandler.java` | ตรวจสอบสถานะการเปิดให้บริการของบริการพิมพ์ |
+| `validation/FileTypeValidationHandler.java` | ตรวจสอบความถูกต้องของประเภทไฟล์เอกสาร |
+| `validation/QuantityValidationHandler.java` | ตรวจสอบจำนวนชิ้นงานพิมพ์ |
+| `validation/PromotionValidityHandler.java` | ตรวจสอบความถูกต้องและช่วงเวลาใช้งานของโปรโมชัน |
+| `config/OrderValidationChainConfig.java` | ประกอบ Chain Bean ตามลำดับ: ServiceAvailability → FileType → Quantity → Promotion |
+| `service/impl/OrderCommandServiceImpl.java` | เรียกใช้ `orderValidationChain.handle(...)` ก่อนขั้นตอนคำนวณราคาและบันทึก |
+
+### ผลลัพธ์เมื่อ Validation ไม่ผ่าน
+- โยน `ValidationException` → ดักจับโดย `GlobalExceptionHandler` (@RestControllerAdvice)
+- ตอบกลับไคลเอนต์ด้วย **HTTP 400 Bad Request** พร้อมรายละเอียด Error แบบ JSON
+
+### SOLID ที่เกี่ยวข้อง
+- **SRP (Single Responsibility Principle):** แต่ละ Handler รับผิดชอบตรวจสอบกฎเพียงเรื่องเดียวอย่างชัดเจน
+- **OCP (Open/Closed Principle):** เพิ่มกฎการตรวจสอบใหม่ได้โดยการสร้าง Handler คลาสใหม่และต่อเข้ากับ Chain ใน Config โดยไม่ต้องแก้ไขโค้ดของ `OrderCommandService`
+- **DIP (Dependency Inversion Principle):** `OrderCommandService` พึ่งพา Abstraction (`OrderValidationHandler`) แทนที่จะผูกติดกับ Concrete Handler ตัวใดตัวหนึ่งโดยตรง
