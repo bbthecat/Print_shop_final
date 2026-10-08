@@ -21,6 +21,8 @@ import com.printflow.service.OrderCommandService;
 import com.printflow.service.PromotionService;
 import com.printflow.service.ServiceCatalogQueryService;
 import com.printflow.service.strategy.pricing.PricingCalculator;
+import com.printflow.validation.OrderValidationContext;
+import com.printflow.validation.OrderValidationHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +45,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
     private final PromotionService promotionService;
     private final PricingCalculator pricingCalculator;
     private final OrderMapper orderMapper;
+    private final OrderValidationHandler orderValidationChain;
 
     public OrderCommandServiceImpl(
             OrderRepository orderRepository,
@@ -52,7 +55,8 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             ServiceCatalogQueryService serviceCatalogQueryService,
             PromotionService promotionService,
             PricingCalculator pricingCalculator,
-            OrderMapper orderMapper
+            OrderMapper orderMapper,
+            OrderValidationHandler orderValidationChain
     ) {
         this.orderRepository = orderRepository;
         this.printItemRepository = printItemRepository;
@@ -62,6 +66,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         this.promotionService = promotionService;
         this.pricingCalculator = pricingCalculator;
         this.orderMapper = orderMapper;
+        this.orderValidationChain = orderValidationChain;
     }
 
     @Override
@@ -73,6 +78,38 @@ public class OrderCommandServiceImpl implements OrderCommandService {
                 OrderStatus.PENDING,
                 BigDecimal.ZERO
         );
+
+        List<PrintItem> itemsToValidate = new ArrayList<>();
+        if (request.items() != null) {
+            for (OrderItemRequest itemRequest : request.items()) {
+                itemsToValidate.add(new PrintItem(
+                        order,
+                        itemRequest.serviceId(),
+                        itemRequest.quantity(),
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO
+                ));
+            }
+        }
+
+        List<OrderPromotion> promotionsToValidate = new ArrayList<>();
+        if (request.promotionCode() != null && !request.promotionCode().isBlank()) {
+            Promotion promotion = promotionService.findValidByCode(request.promotionCode());
+            promotionsToValidate.add(new OrderPromotion(
+                    order,
+                    promotion.getId(),
+                    BigDecimal.ZERO
+            ));
+        }
+
+        OrderValidationContext validationContext = new OrderValidationContext(
+                order,
+                itemsToValidate,
+                List.of(),
+                promotionsToValidate
+        );
+
+        orderValidationChain.handle(validationContext);
 
         order = orderRepository.save(order);
 
