@@ -4,12 +4,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-@EnableMethodSecurity
 public class SecurityConfig {
 
     private static final String ADMIN = "ADMIN";
@@ -32,8 +30,9 @@ public class SecurityConfig {
                         .requestMatchers(SWAGGER_PATHS).permitAll()
                         .requestMatchers(PUBLIC_PAGES).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/customers").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/customers").hasAnyRole(STAFF, ADMIN)
+                        .requestMatchers("/api/v1/customers/me").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/customers/**").hasRole(ADMIN)
+                        .requestMatchers("/api/v1/customers", "/api/v1/customers/**").hasAnyRole(STAFF, ADMIN)
                         .requestMatchers("/api/v1/reports/**", "/api/v1/admin/**", "/admin/**").hasRole(ADMIN)
                         .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
