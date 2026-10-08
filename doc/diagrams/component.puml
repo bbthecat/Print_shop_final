@@ -1,0 +1,91 @@
+@startuml component
+!pragma layout smetana
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam component {
+  BackgroundColor #EEF4FB
+  BorderColor #2E5C8A
+}
+skinparam package {
+  BorderColor #1F3A5F
+}
+
+title PrintFlow — Component Diagram
+
+actor "Browser\n(Customer / Staff / Admin)" as Browser
+actor "API Client\n(Swagger UI)" as ApiClient
+
+package "PrintFlow (Spring Boot 3)" {
+
+  package "Presentation Layer" {
+    [Web Controllers\n(controller/web)\nThymeleaf MVC] as WebCtl
+    [REST Controllers\n(controller/api)\n/api/v1/**] as ApiCtl
+    [GlobalExceptionHandler\n(@RestControllerAdvice)] as ExHandler
+  }
+
+  package "Security" {
+    [SecurityFilterChain\n(form login + HTTP Basic,\nrole-based)] as Sec
+    [UserDetailsServiceImpl\nCurrentUserProvider] as SecUser
+  }
+
+  package "Service Layer" {
+    [Customer / AdminUser\nService] as UserSvc
+    [Service Catalog\n+ Pricing / Discount\nStrategy] as CatalogSvc
+    [Order Query / Command\n+ Validation Chain] as OrderSvc
+    [OrderStatusService\n(State)] as StatusSvc
+    [Event Listeners\n(Observer)] as Listeners
+    [Payment / Notification\nService] as PayNotiSvc
+    [FileStorageService] as FileSvc
+    [ReportService] as ReportSvc
+  }
+
+  package "Data Access" {
+    [Spring Data JPA\nRepositories] as Repo
+    [DTO + Mapper] as Mapper
+  }
+
+  [Flyway Migrations] as Flyway
+}
+
+database "PostgreSQL\n(Neon)" as DB
+folder "File Storage\n(uploads/)" as Disk
+
+Browser --> Sec : HTTPS
+ApiClient --> Sec : HTTPS + Basic Auth
+Sec --> WebCtl
+Sec --> ApiCtl
+Sec ..> SecUser
+ApiCtl ..> ExHandler : exceptions
+
+WebCtl --> UserSvc
+WebCtl --> CatalogSvc
+WebCtl --> OrderSvc
+WebCtl --> StatusSvc
+ApiCtl --> UserSvc
+ApiCtl --> CatalogSvc
+ApiCtl --> OrderSvc
+ApiCtl --> StatusSvc
+ApiCtl --> PayNotiSvc
+ApiCtl --> ReportSvc
+
+OrderSvc --> CatalogSvc : คำนวณราคา
+OrderSvc --> PayNotiSvc : สร้าง Payment UNPAID
+OrderSvc --> FileSvc
+StatusSvc ..> Listeners : OrderStatusChangedEvent
+Listeners --> PayNotiSvc
+
+UserSvc --> Repo
+CatalogSvc --> Repo
+OrderSvc --> Repo
+StatusSvc --> Repo
+PayNotiSvc --> Repo
+ReportSvc --> Repo
+UserSvc ..> Mapper
+OrderSvc ..> Mapper
+
+Repo --> DB : JDBC
+Flyway --> DB : schema V1..Vn
+FileSvc --> Disk
+
+@enduml
