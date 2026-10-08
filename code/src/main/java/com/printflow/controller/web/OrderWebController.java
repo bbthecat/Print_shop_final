@@ -3,7 +3,9 @@ package com.printflow.controller.web;
 import com.printflow.dto.form.OrderCreateForm;
 import com.printflow.dto.request.OrderCreateRequest;
 import com.printflow.dto.request.OrderItemRequest;
+import com.printflow.dto.response.AddonServiceResponse;
 import com.printflow.dto.response.OrderResponse;
+import com.printflow.dto.response.PrintServiceResponse;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.exception.ValidationException;
 import com.printflow.security.CurrentUserProvider;
@@ -25,6 +27,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/orders")
@@ -78,6 +82,7 @@ public class OrderWebController {
 
             OrderItemRequest itemRequest = new OrderItemRequest(
                     form.getServiceId(),
+                    form.getPageCount() != null ? form.getPageCount() : 1,
                     form.getQuantity(),
                     form.getAddonIds() != null ? form.getAddonIds() : List.of()
             );
@@ -133,6 +138,7 @@ public class OrderWebController {
     public String getOrderDetail(@PathVariable Long id, Model model) {
         OrderResponse order = orderQueryService.getById(id);
         model.addAttribute("order", order);
+        populateCatalogMaps(model);
         return "orders/detail";
     }
 
@@ -140,6 +146,7 @@ public class OrderWebController {
     public String getOrderTracking(@PathVariable Long id, Model model) {
         OrderResponse order = orderQueryService.getById(id);
         model.addAttribute("order", order);
+        populateCatalogMaps(model);
         return "orders/tracking";
     }
 
@@ -147,5 +154,17 @@ public class OrderWebController {
         model.addAttribute("services", catalogQueryService.findAllActivePrintServices());
         model.addAttribute("addons", catalogQueryService.findAllActiveAddonServices());
         model.addAttribute("promotions", promotionService.findAllActive());
+    }
+
+    /** ส่ง Map<id, name> ให้ template lookup ชื่อบริการจาก ID */
+    private void populateCatalogMaps(Model model) {
+        Map<Long, String> serviceMap = catalogQueryService.findAllActivePrintServices()
+                .stream()
+                .collect(Collectors.toMap(PrintServiceResponse::id, PrintServiceResponse::name));
+        Map<Long, String> addonMap = catalogQueryService.findAllActiveAddonServices()
+                .stream()
+                .collect(Collectors.toMap(AddonServiceResponse::id, AddonServiceResponse::name));
+        model.addAttribute("serviceMap", serviceMap);
+        model.addAttribute("addonMap", addonMap);
     }
 }

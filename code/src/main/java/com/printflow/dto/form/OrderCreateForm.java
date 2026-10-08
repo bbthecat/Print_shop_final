@@ -15,8 +15,12 @@ public class OrderCreateForm {
     @NotNull(message = "กรุณาเลือกบริการงานพิมพ์")
     private Long serviceId;
 
-    @NotNull(message = "กรุณาระบุจำนวน")
-    @Min(value = 1, message = "จำนวนต้องมากกว่าหรือเท่ากับ 1")
+    @NotNull(message = "กรุณาระบุจำนวนหน้า")
+    @Min(value = 1, message = "จำนวนหน้าต้องมากกว่าหรือเท่ากับ 1")
+    private Integer pageCount = 1;
+
+    @NotNull(message = "กรุณาระบุจำนวนชุด")
+    @Min(value = 1, message = "จำนวนชุดต้องมากกว่าหรือเท่ากับ 1")
     private Integer quantity = 1;
 
     private List<Long> addonIds = new ArrayList<>();

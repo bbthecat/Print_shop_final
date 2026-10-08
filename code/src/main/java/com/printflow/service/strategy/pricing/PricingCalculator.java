@@ -1,3 +1,4 @@
+
 package com.printflow.service.strategy.pricing;
 
 import com.printflow.domain.enums.PricingType;
@@ -11,7 +12,7 @@ public class PricingCalculator {
 
     private final PricingStrategyResolver strategyResolver;
 
-    // Constructor Injection ตามเกณฑ์ห้ามใช้ @Autowired บน field
+    // Constructor Injection
     public PricingCalculator(PricingStrategyResolver strategyResolver) {
         this.strategyResolver = strategyResolver;
     }
@@ -19,27 +20,62 @@ public class PricingCalculator {
     /**
      * คำนวณราคาพิมพ์หลักตามประเภท PricingStrategy
      */
-    public BigDecimal calculatePrintPrice(PricingType pricingType, BigDecimal basePrice, int pageCount, int copyCount) {
+    public BigDecimal calculatePrintPrice(
+            PricingType pricingType,
+            BigDecimal basePrice,
+            int pageCount,
+            int copyCount
+    ) {
         PricingStrategy strategy = strategyResolver.resolve(pricingType);
-        return strategy.calculate(basePrice, pageCount, copyCount);
+
+        return strategy.calculate(
+                basePrice,
+                pageCount,
+                copyCount
+        );
     }
 
     /**
-     * คำนวณราคารวมของ 1 PrintItem: ราคาพิมพ์หลัก + ผลรวมราคาบริการเสริม (Addon) คูณจำนวนชุด
+     * คำนวณราคารวมของ PrintItem
+     * = ราคาพิมพ์หลัก + ผลรวมราคาบริการเสริม
+     *
+     * Add-on แต่ละรายการคิดราคาเพียงครั้งเดียว
      */
-    public BigDecimal calculateItemTotal(PricingType pricingType, BigDecimal basePrice, int pageCount, int copyCount, List<BigDecimal> addonPrices) {
-        BigDecimal printPrice = calculatePrintPrice(pricingType, basePrice, pageCount, copyCount);
+    public BigDecimal calculateItemTotal(
+            PricingType pricingType,
+            BigDecimal basePrice,
+            int pageCount,
+            int copyCount,
+            List<BigDecimal> addonPrices
+    ) {
+        // คำนวณราคาพิมพ์หลัก
+        BigDecimal printPrice = calculatePrintPrice(
+                pricingType,
+                basePrice,
+                pageCount,
+                copyCount
+        );
 
+        // รวมราคาบริการเสริม โดยคูณจำนวนชุด (copyCount)
         BigDecimal addonsTotal = BigDecimal.ZERO;
+
         if (addonPrices != null && !addonPrices.isEmpty()) {
             for (BigDecimal addonPrice : addonPrices) {
-                if (addonPrice != null && addonPrice.compareTo(BigDecimal.ZERO) > 0) {
-                    addonsTotal = addonsTotal.add(addonPrice.multiply(BigDecimal.valueOf(Math.max(1, copyCount))));
+                if (addonPrice != null
+                        && addonPrice.compareTo(BigDecimal.ZERO) > 0) {
+                    addonsTotal = addonsTotal.add(addonPrice);
                 }
             }
+            // addon คิดตามจำนวนชุด
+            addonsTotal = addonsTotal.multiply(BigDecimal.valueOf(copyCount));
         }
 
+        // รวมราคาพิมพ์และบริการเสริม
         BigDecimal total = printPrice.add(addonsTotal);
-        return total.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : total;
+
+        // ป้องกันยอดรวมติดลบ
+        return total.compareTo(BigDecimal.ZERO) < 0
+                ? BigDecimal.ZERO
+                : total;
     }
 }

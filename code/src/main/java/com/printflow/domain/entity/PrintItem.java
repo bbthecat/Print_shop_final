@@ -22,6 +22,9 @@ public class PrintItem {
     @Column(nullable = false)
     private Integer quantity;
 
+    @Column(name = "page_count", nullable = false)
+    private Integer pageCount;
+
     @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
@@ -35,14 +38,27 @@ public class PrintItem {
             PrintOrder order,
             Long serviceId,
             Integer quantity,
+            Integer pageCount,
             BigDecimal unitPrice,
             BigDecimal subtotal
     ) {
         this.order = order;
         this.serviceId = serviceId;
         this.quantity = quantity;
+        this.pageCount = pageCount;
         this.unitPrice = unitPrice;
         this.subtotal = subtotal;
+    }
+
+    /** Backward-compat constructor (pageCount defaults to 1) */
+    public PrintItem(
+            PrintOrder order,
+            Long serviceId,
+            Integer quantity,
+            BigDecimal unitPrice,
+            BigDecimal subtotal
+    ) {
+        this(order, serviceId, quantity, 1, unitPrice, subtotal);
     }
 
     public Long getId() {
@@ -61,6 +77,10 @@ public class PrintItem {
         return quantity;
     }
 
+    public Integer getPageCount() {
+        return pageCount;
+    }
+
     public BigDecimal getUnitPrice() {
         return unitPrice;
     }
@@ -73,6 +93,10 @@ public class PrintItem {
         this.quantity = quantity;
     }
 
+    public void setPageCount(Integer pageCount) {
+        this.pageCount = pageCount;
+    }
+
     public void setUnitPrice(BigDecimal unitPrice) {
         this.unitPrice = unitPrice;
     }
@@ -80,4 +104,4 @@ public class PrintItem {
     public void setSubtotal(BigDecimal subtotal) {
         this.subtotal = subtotal;
     }
-}
+}

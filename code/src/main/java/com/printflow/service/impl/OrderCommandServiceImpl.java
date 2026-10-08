@@ -12,6 +12,7 @@ import com.printflow.dto.request.OrderCreateRequest;
 import com.printflow.dto.request.OrderItemRequest;
 import com.printflow.dto.response.OrderResponse;
 import com.printflow.exception.ResourceNotFoundException;
+import com.printflow.exception.ValidationException;
 import com.printflow.mapper.OrderMapper;
 import com.printflow.repository.OrderPromotionRepository;
 import com.printflow.repository.OrderRepository;
@@ -20,6 +21,7 @@ import com.printflow.repository.PrintItemRepository;
 import com.printflow.service.OrderCommandService;
 import com.printflow.service.PromotionService;
 import com.printflow.service.ServiceCatalogQueryService;
+import com.printflow.service.strategy.discount.DiscountStrategyResolver;
 import com.printflow.service.strategy.pricing.PricingCalculator;
 import com.printflow.validation.OrderValidationContext;
 import com.printflow.validation.OrderValidationHandler;
@@ -27,7 +29,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +45,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
     private final ServiceCatalogQueryService serviceCatalogQueryService;
     private final PromotionService promotionService;
     private final PricingCalculator pricingCalculator;
+    private final DiscountStrategyResolver discountStrategyResolver;
     private final OrderMapper orderMapper;
     private final OrderValidationHandler orderValidationChain;
 
@@ -55,6 +57,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             ServiceCatalogQueryService serviceCatalogQueryService,
             PromotionService promotionService,
             PricingCalculator pricingCalculator,
+            DiscountStrategyResolver discountStrategyResolver,
             OrderMapper orderMapper,
             OrderValidationHandler orderValidationChain
     ) {
@@ -65,6 +68,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         this.serviceCatalogQueryService = serviceCatalogQueryService;
         this.promotionService = promotionService;
         this.pricingCalculator = pricingCalculator;
+        this.discountStrategyResolver = discountStrategyResolver;
         this.orderMapper = orderMapper;
         this.orderValidationChain = orderValidationChain;
     }
@@ -138,7 +142,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
                 }
             }
 
-            int pageCount = 1;
+            int pageCount = Math.max(1, itemRequest.pageCount());
             int copyCount = Math.max(1, itemRequest.quantity());
 
             BigDecimal itemTotal =
@@ -150,16 +154,19 @@ public class OrderCommandServiceImpl implements OrderCommandService {
                             addonPrices
                     );
 
-            BigDecimal unitPrice = itemTotal.divide(
-                    BigDecimal.valueOf(copyCount),
-                    2,
-                    RoundingMode.HALF_UP
+            // unitPrice = ราคาพิมพ์ต่อแผ่น (basePrice เท่านั้น ไม่รวม addon)
+            BigDecimal unitPrice = pricingCalculator.calculatePrintPrice(
+                    printService.getPricingType(),
+                    printService.getBasePrice(),
+                    pageCount,
+                    1
             );
 
             PrintItem item = new PrintItem(
                     order,
                     printService.getId(),
                     itemRequest.quantity(),
+                    pageCount,
                     unitPrice,
                     itemTotal
             );
@@ -188,8 +195,21 @@ public class OrderCommandServiceImpl implements OrderCommandService {
                             request.promotionCode()
                     );
 
+            // 🟡 ตรวจสอบยอดขั้นต่ำก่อน — แจ้งลูกค้าแทนการลด 0 แบบเงียบๆ
+            if (promotion.getMinOrderAmount() != null
+                    && orderTotal.compareTo(promotion.getMinOrderAmount()) < 0) {
+                throw new ValidationException(
+                        "โปรโมชัน '" + promotion.getCode() + "' ต้องสั่งซื้อขั้นต่ำ "
+                        + promotion.getMinOrderAmount().toPlainString() + " บาท "
+                        + "(ยอดปัจจุบัน " + orderTotal.toPlainString() + " บาท)"
+                );
+            }
+
+            // 🟠 ใช้ DiscountStrategy จาก resolver แทน calculateDiscount() เดิม
             BigDecimal discount =
-                    calculateDiscount(promotion, orderTotal);
+                    discountStrategyResolver
+                            .resolve(promotion.getDiscountType())
+                            .calculate(orderTotal, promotion);
 
             orderTotal = orderTotal.subtract(discount);
 
@@ -244,42 +264,6 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         return "ORD-" + System.currentTimeMillis();
     }
 
-    private BigDecimal calculateDiscount(
-            Promotion promotion,
-            BigDecimal orderTotal
-    ) {
-
-        if (promotion == null) {
-            return BigDecimal.ZERO;
-        }
-
-        if (promotion.getMinOrderAmount() != null
-                && orderTotal.compareTo(
-                        promotion.getMinOrderAmount()
-                ) < 0) {
-            return BigDecimal.ZERO;
-        }
-
-        BigDecimal discountValue =
-                promotion.getDiscountValue();
-
-        if (discountValue == null
-                || discountValue.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
-        }
-
-        return switch (promotion.getDiscountType()) {
-
-            case PERCENTAGE -> orderTotal
-                    .multiply(discountValue)
-                    .divide(
-                            BigDecimal.valueOf(100),
-                            2,
-                            RoundingMode.HALF_UP
-                    );
-
-            case FIXED_AMOUNT -> discountValue.min(orderTotal);
-        };
-    }
+    // calculateDiscount() ถูกลบออกแล้ว — ใช้ DiscountStrategyResolver แทน (บรรทัดประมาณ 200)
 }
 

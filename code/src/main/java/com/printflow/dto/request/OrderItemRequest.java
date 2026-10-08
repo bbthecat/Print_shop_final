@@ -12,6 +12,10 @@ public record OrderItemRequest(
 
         @NotNull
         @Min(1)
+        Integer pageCount,
+
+        @NotNull
+        @Min(1)
         Integer quantity,
 
         List<Long> addonIds
