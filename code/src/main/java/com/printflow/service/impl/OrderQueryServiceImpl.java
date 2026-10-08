@@ -73,6 +73,16 @@ public class OrderQueryServiceImpl implements OrderQueryService {
         );
     }
 
+    @Override
+    public Page<OrderResponse> getAllByUserId(
+            Long userId,
+            Pageable pageable
+    ) {
+        return mapOrders(
+                orderRepository.findByUserId(userId, pageable)
+        );
+    }
+
     private Page<OrderResponse> mapOrders(Page<PrintOrder> orders) {
         return orders.map(order -> {
             List<PrintItem> items =
