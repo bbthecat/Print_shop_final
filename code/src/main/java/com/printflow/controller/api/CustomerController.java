@@ -3,6 +3,7 @@ package com.printflow.controller.api;
 import com.printflow.dto.request.CustomerRegisterRequest;
 import com.printflow.dto.request.CustomerUpdateRequest;
 import com.printflow.dto.response.CustomerResponse;
+import com.printflow.security.CurrentUserProvider;
 import com.printflow.service.CustomerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,7 +13,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,9 +31,11 @@ import java.net.URI;
 public class CustomerController {
 
     private final CustomerService customerService;
+    private final CurrentUserProvider currentUserProvider;
 
-    public CustomerController(CustomerService customerService) {
+    public CustomerController(CustomerService customerService, CurrentUserProvider currentUserProvider) {
         this.customerService = customerService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @PostMapping
@@ -54,16 +56,26 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.getAll(pageable));
     }
 
+    @GetMapping("/me")
+    @Operation(summary = "ดูข้อมูลของตัวเอง (ลูกค้าที่ login อยู่)")
+    public ResponseEntity<CustomerResponse> getMe() {
+        return ResponseEntity.ok(customerService.getById(currentUserProvider.getCurrentUserId()));
+    }
+
+    @PutMapping("/me")
+    @Operation(summary = "แก้ไขข้อมูลของตัวเอง (ลูกค้าที่ login อยู่)")
+    public ResponseEntity<CustomerResponse> updateMe(@Valid @RequestBody CustomerUpdateRequest request) {
+        return ResponseEntity.ok(customerService.update(currentUserProvider.getCurrentUserId(), request));
+    }
+
     @GetMapping("/{id}")
-    @Operation(summary = "ดูข้อมูลลูกค้า (เจ้าของ หรือ STAFF/ADMIN)")
-    @PreAuthorize("@customerAccess.canAccess(authentication, #id)")
+    @Operation(summary = "ดูข้อมูลลูกค้า (STAFF, ADMIN)")
     public ResponseEntity<CustomerResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(customerService.getById(id));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "แก้ไขข้อมูลลูกค้า (เจ้าของ หรือ STAFF/ADMIN)")
-    @PreAuthorize("@customerAccess.canAccess(authentication, #id)")
+    @Operation(summary = "แก้ไขข้อมูลลูกค้า (STAFF, ADMIN)")
     public ResponseEntity<CustomerResponse> update(@PathVariable Long id,
                                                    @Valid @RequestBody CustomerUpdateRequest request) {
         return ResponseEntity.ok(customerService.update(id, request));
