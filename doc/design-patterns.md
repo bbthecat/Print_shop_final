@@ -1,6 +1,5 @@
 # Design Patterns
 
-
 ทีมเลือกใช้ GoF กลุ่ม **Behavioral** จำนวน 4 pattern (ข้อกำหนดขั้นต่ำ 3)
 
 | Pattern | ปัญหาที่แก้ | ไฟล์/คลาสหลัก | Diagram |
@@ -21,7 +20,6 @@
 | DTO Pattern | `dto/request/` และ `dto/response/` ไม่ส่ง entity ออก API ตรง ๆ |
 | Mapper | `mapper/OrderMapper`, `mapper/PaymentMapper`, `mapper/CustomerMapper` |
 | Dependency Injection | Constructor Injection ทุกคลาส ไม่มี `@Autowired` บน field |
-
 ## Strategy (P2)
 
 ### ปัญหาที่แก้
