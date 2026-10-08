@@ -2,55 +2,54 @@
 !pragma layout smetana
 skinparam defaultFontName Tahoma
 skinparam shadowing false
+skinparam ArrowColor #2E5C8A
 skinparam node {
   BackgroundColor #EEF4FB
   BorderColor #2E5C8A
+  FontColor #1F3A5F
 }
+skinparam artifact {
+  BackgroundColor #FFFFFF
+  BorderColor #2E5C8A
+}
+skinparam database {
+  BackgroundColor #FFF4E5
+  BorderColor #B26A00
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9A227
+}
+left to right direction
 
 title PrintFlow — Deployment Diagram
 
-node "User Device" as Device {
-  artifact "Web Browser" as Browser
-}
+actor "User\n(Browser)" as User
 
 node "Developer Machine" as Dev {
-  artifact "Source code\n(Git)" as Src
-  artifact "docker compose\n(app + postgres:15)" as Compose
+  artifact "Source code\n+ docker compose" as Src
 }
 
-cloud "GitHub" as GitHub {
-  artifact "Repository\nbbthecat/Print_shop_final" as Repo
-  node "GitHub Actions" as Actions {
-    artifact "CI: mvn clean verify\n+ test report" as CI
-    artifact "CD: trigger Render\ndeploy hook (main)" as CD
-  }
+node "GitHub" as GitHub {
+  artifact "Repository\n(main / develop)" as Repo
+  artifact "GitHub Actions\nbuild → test → deploy" as Actions
 }
 
-cloud "Render (Singapore)" as Render {
-  node "Web Service: printflow\n(Free, Docker)" as WebService {
-    node "Docker Container\neclipse-temurin:17-jre" as Container {
-      artifact "printflow.jar\n(Spring Boot 3, Tomcat :$PORT)" as Jar
-    }
-  }
+node "Render — Singapore\n(Web Service, Docker)" as Render {
+  artifact "printflow.jar\nSpring Boot 3 / JRE 17" as Jar
+  artifact "Environment (secrets)\nDB_URL, DB_USER, DB_PASSWORD\nSPRING_PROFILES_ACTIVE, ADMIN_*" as Env
 }
 
-cloud "Neon (ap-southeast-1)" as Neon {
-  database "PostgreSQL\nneondb" as Pg
+node "Neon — Singapore" as Neon {
+  database "PostgreSQL" as Pg
 }
 
-Browser --> Jar : HTTPS\nprintflow-ogm4.onrender.com
 Src --> Repo : git push
-Repo --> CI : push / pull request
-CI --> CD : main เท่านั้น
-CD --> WebService : POST deploy hook
-Repo --> WebService : auto-deploy\n(branch develop)
-Jar --> Pg : JDBC over TLS\n(sslmode=require)
-
-note right of WebService
-  ENV: DB_URL, DB_USER, DB_PASSWORD,
-  SPRING_PROFILES_ACTIVE=prod,
-  ADMIN_USERNAME / EMAIL / PASSWORD
-  (secrets อยู่บน Render เท่านั้น)
-end note
+Repo --> Actions : push / PR
+Actions --> Render : deploy hook\n(main)
+Repo --> Render : auto-deploy\n(develop)
+User --> Jar : HTTPS
+Jar --> Pg : JDBC + TLS
+Jar ..> Env : อ่านค่า
 
 @enduml
