@@ -1,0 +1,60 @@
+
+@startuml
+title Sequence Diagram - Create Order
+
+actor User
+boundary "Order Controller" as Controller
+control "OrderCommandServiceImpl" as Service
+control "OrderValidationHandler Chain" as Validation
+control "PricingCalculator" as Pricing
+database "OrderRepository" as OrderRepo
+database "PrintItemRepository" as ItemRepo
+database "PrintItemAddonRepository" as AddonRepo
+
+User -> Controller : Submit order request
+Controller -> Service : createOrder(request)
+
+activate Service
+
+Service -> Service : Create PrintOrder\n(status = PENDING)
+Service -> Service : Prepare items and promotions
+Service -> Validation : handle(validationContext)
+
+activate Validation
+Validation -> Validation : Validate service availability
+Validation -> Validation : Validate file types
+Validation -> Validation : Validate quantities
+Validation -> Validation : Validate promotions
+Validation --> Service : Validation completed
+deactivate Validation
+
+Service -> OrderRepo : Save order
+OrderRepo --> Service : Saved order
+
+loop For each order item
+    Service -> Pricing : calculateItemTotal(...)
+    Pricing --> Service : Item total
+
+    Service -> ItemRepo : Save PrintItem
+    ItemRepo --> Service : Saved item
+
+    opt Add-ons selected
+        Service -> AddonRepo : Save selected add-ons
+        AddonRepo --> Service : Saved add-ons
+    end
+end
+
+opt Promotion code provided
+    Service -> Service : Calculate promotion discount
+end
+
+Service -> OrderRepo : Save final order total
+OrderRepo --> Service : Updated order
+
+Service -> Service : Convert order to OrderResponse
+Service --> Controller : Return OrderResponse
+deactivate Service
+
+Controller --> User : Return order result
+
+@enduml

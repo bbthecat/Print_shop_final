@@ -1,0 +1,245 @@
+
+@startuml class-diagram
+!pragma layout smetana
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+title PrintFlow - Class Diagram (Order & Validation)
+
+package "Service Layer" {
+    interface OrderCommandService {
+        +createOrder(request: OrderCreateRequest): OrderResponse
+        +deleteOrder(id: Long): void
+    }
+
+    class OrderCommandServiceImpl <<Service>> {
+        -orderRepository: OrderRepository
+        -printItemRepository: PrintItemRepository
+        -printItemAddonRepository: PrintItemAddonRepository
+        -orderPromotionRepository: OrderPromotionRepository
+        -serviceCatalogQueryService: ServiceCatalogQueryService
+        -promotionService: PromotionService
+        -pricingCalculator: PricingCalculator
+        -orderMapper: OrderMapper
+        -orderValidationChain: OrderValidationHandler
+        +createOrder(request: OrderCreateRequest): OrderResponse
+        +deleteOrder(id: Long): void
+    }
+
+    class ServiceCatalogQueryService
+    class PromotionService
+}
+
+package "Validation - Chain of Responsibility" {
+    abstract class OrderValidationHandler {
+        -next: OrderValidationHandler
+        +setNext(next: OrderValidationHandler): OrderValidationHandler
+        +handle(context: OrderValidationContext): void
+        #validate(context: OrderValidationContext): void
+    }
+
+    class QuantityValidationHandler {
+        #validate(context: OrderValidationContext): void
+    }
+
+    class ServiceAvailabilityHandler {
+        -serviceCatalogQueryService: ServiceCatalogQueryService
+        #validate(context: OrderValidationContext): void
+    }
+
+    class FileTypeValidationHandler {
+        -ALLOWED_FILE_TYPES: Set<String>
+        #validate(context: OrderValidationContext): void
+    }
+
+    class PromotionValidityHandler {
+        -promotionRepository: PromotionRepository
+        #validate(context: OrderValidationContext): void
+    }
+
+    class OrderValidationContext {
+        -order: PrintOrder
+        -items: List<PrintItem>
+        -files: List<OrderFile>
+        -promotions: List<OrderPromotion>
+        +getOrder(): PrintOrder
+        +getItems(): List<PrintItem>
+        +getFiles(): List<OrderFile>
+        +getPromotions(): List<OrderPromotion>
+    }
+}
+
+package "Repositories" {
+    class OrderRepository
+    class PrintItemRepository
+    class PrintItemAddonRepository
+    class OrderPromotionRepository
+    class PromotionRepository
+}
+
+package "Domain Entities" {
+    class PrintOrder
+    class PrintItem
+    class PrintItemAddon
+    class OrderFile
+    class OrderPromotion
+    class Promotion
+}
+
+package "DTO" {
+    class OrderCreateRequest
+    class OrderItemRequest
+    class OrderResponse
+}
+
+package "Pricing & Mapping" {
+    class PricingCalculator
+    class OrderMapper
+}
+
+OrderCommandService <|.. OrderCommandServiceImpl
+
+OrderValidationHandler <|-- QuantityValidationHandler
+OrderValidationHandler <|-- ServiceAvailabilityHandler
+OrderValidationHandler <|-- FileTypeValidationHandler
+OrderValidationHandler <|-- PromotionValidityHandler
+
+OrderValidationHandler o--> "0..1" OrderValidationHandler : next
+OrderCommandServiceImpl --> OrderValidationHandler : validation chain
+OrderCommandServiceImpl ..> OrderValidationContext : creates
+OrderValidationContext --> PrintOrder
+OrderValidationContext --> PrintItem
+OrderValidationContext --> OrderFile
+OrderValidationContext --> OrderPromotion
+
+OrderCommandServiceImpl --> OrderRepository
+OrderCommandServiceImpl --> PrintItemRepository
+OrderCommandServiceImpl --> PrintItemAddonRepository
+OrderCommandServiceImpl --> OrderPromotionRepository
+OrderCommandServiceImpl --> ServiceCatalogQueryService
+OrderCommandServiceImpl --> PromotionService
+OrderCommandServiceImpl --> PricingCalculator
+OrderCommandServiceImpl --> OrderMapper
+
+ServiceAvailabilityHandler --> ServiceCatalogQueryService
+PromotionValidityHandler --> PromotionRepository
+
+OrderCommandServiceImpl ..> OrderCreateRequest
+OrderCommandServiceImpl ..> OrderItemRequest
+OrderCommandServiceImpl ..> OrderResponse
+
+note right of OrderValidationHandler
+  Chain of Responsibility:
+  validate(context) ตรวจสอบข้อมูล
+  handle(context) ส่งต่อไปยัง
+  Handler ถัดไปเมื่อยังมี next
+end note
+
+note bottom of OrderCommandServiceImpl
+  OrderCommandServiceImpl ใช้
+  PricingCalculator คำนวณราคา
+  และ OrderMapper แปลงผลลัพธ์
+end note
+
+
+' ===== State Pattern =====
+package "State Pattern" {
+    interface OrderState {
+        +getStatus(): OrderStatus
+        +confirm(): OrderStatus
+        +process(): OrderStatus
+        +ready(): OrderStatus
+        +complete(): OrderStatus
+        +cancel(): OrderStatus
+    }
+
+    abstract class AbstractOrderState {
+        #reject(target: OrderStatus): OrderStatus
+    }
+
+    class PendingState
+    class ConfirmedState
+    class ProcessingState
+    class ReadyState
+    class CompletedState
+    class CancelledState
+
+    class OrderStateResolver {
+        -states: Map<OrderStatus, OrderState>
+        +resolve(status: OrderStatus): OrderState
+    }
+
+    class OrderStatusServiceImpl {
+        +changeStatus(orderId: Long, target: OrderStatus, actorUserId: Long): OrderStatus
+        +getHistories(orderId: Long): List<OrderStatusHistoryResponse>
+    }
+
+    OrderState <|.. AbstractOrderState
+    AbstractOrderState <|-- PendingState
+    AbstractOrderState <|-- ConfirmedState
+    AbstractOrderState <|-- ProcessingState
+    AbstractOrderState <|-- ReadyState
+    AbstractOrderState <|-- CompletedState
+    AbstractOrderState <|-- CancelledState
+
+    OrderStateResolver o-- OrderState : registers states
+    OrderStatusServiceImpl --> OrderStateResolver : resolves current state
+    OrderStatusServiceImpl --> OrderState : applies action
+}
+
+' ===== Pricing Strategy =====
+package "Pricing Strategy" {
+    interface PricingStrategy {
+        +getPricingType(): PricingType
+        +calculate(basePrice: BigDecimal, pageCount: int, copyCount: int): BigDecimal
+    }
+
+    class BlackWhitePricingStrategy
+    class ColorPricingStrategy
+    class PhotoPricingStrategy
+
+    class PricingStrategyResolver {
+        -strategies: Map<PricingType, PricingStrategy>
+        +resolve(pricingType: PricingType): PricingStrategy
+    }
+
+    class PricingCalculator {
+        -strategyResolver: PricingStrategyResolver
+        +calculatePrintPrice(...): BigDecimal
+        +calculateItemTotal(...): BigDecimal
+    }
+
+    PricingStrategy <|.. BlackWhitePricingStrategy
+    PricingStrategy <|.. ColorPricingStrategy
+    PricingStrategy <|.. PhotoPricingStrategy
+
+    PricingStrategyResolver o-- "0..*" PricingStrategy : registers strategies
+    PricingCalculator --> PricingStrategyResolver
+    OrderCommandServiceImpl --> PricingCalculator : calculates item total
+}
+
+' ===== Discount Strategy =====
+package "Discount Strategy" {
+    interface DiscountStrategy {
+        +getDiscountType(): DiscountType
+        +calculate(subtotal: BigDecimal, promotion: Promotion): BigDecimal
+    }
+
+    class FixedAmountDiscountStrategy
+    class PercentageDiscountStrategy
+
+    class DiscountStrategyResolver {
+        -strategies: Map<DiscountType, DiscountStrategy>
+        +resolve(discountType: DiscountType): DiscountStrategy
+    }
+
+    DiscountStrategy <|.. FixedAmountDiscountStrategy
+    DiscountStrategy <|.. PercentageDiscountStrategy
+
+    DiscountStrategyResolver o-- "0..*" DiscountStrategy : registers strategies
+}
+
+@enduml
