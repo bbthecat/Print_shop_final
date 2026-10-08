@@ -21,6 +21,12 @@ public class SecurityConfig {
             "/", "/login", "/register", "/services", "/css/**", "/error"
     };
 
+    // ทุกคนดูรายการบริการได้ แต่เพิ่ม/แก้/ลบได้เฉพาะ ADMIN
+    private static final String[] CATALOG_PATHS = {
+            "/api/v1/services", "/api/v1/services/**",
+            "/api/v1/addon-services", "/api/v1/addon-services/**"
+    };
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -33,6 +39,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/customers/me").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/customers/**").hasRole(ADMIN)
                         .requestMatchers("/api/v1/customers", "/api/v1/customers/**").hasAnyRole(STAFF, ADMIN)
+                        .requestMatchers(HttpMethod.GET, CATALOG_PATHS).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/promotions", "/api/v1/promotions/**").authenticated()
+                        .requestMatchers(CATALOG_PATHS).hasRole(ADMIN)
+                        .requestMatchers("/api/v1/promotions", "/api/v1/promotions/**").hasRole(ADMIN)
                         .requestMatchers("/api/v1/reports/**", "/api/v1/admin/**", "/admin/**").hasRole(ADMIN)
                         .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
