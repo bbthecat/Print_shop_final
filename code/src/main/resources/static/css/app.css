@@ -125,6 +125,9 @@ th { background: #eef2f6; }
 
 .footer { text-align: center; padding: 16px; color: var(--muted); font-size: 0.85rem; }
 
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.stat-value { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+
 @media (max-width: 640px) {
     .navbar { flex-wrap: wrap; gap: 10px; }
     .form-row { flex-direction: column; gap: 0; }
