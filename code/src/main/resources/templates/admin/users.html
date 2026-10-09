@@ -70,6 +70,7 @@
             <button type="submit" class="btn btn-small btn-secondary">กรอง</button>
         </form>
 
+        <div class="table-scroll">
         <table>
             <thead>
             <tr>
@@ -115,6 +116,7 @@
             </tr>
             </tbody>
         </table>
+        </div>
 
         <div class="pagination" th:if="${users.totalPages > 1}">
             <a th:if="${users.hasPrevious()}"

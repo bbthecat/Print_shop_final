@@ -89,6 +89,16 @@ class CustomerControllerTest {
     }
 
     @Test
+    void register_wrongContentType_returns415NotServerError() throws Exception {
+        mockMvc.perform(post("/api/v1/customers")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("hello"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.status").value(415));
+        verify(customerService, never()).register(any());
+    }
+
+    @Test
     void register_invalidBody_returns400WithFieldErrors() throws Exception {
         mockMvc.perform(post("/api/v1/customers")
                         .contentType(MediaType.APPLICATION_JSON)

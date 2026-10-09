@@ -1,5 +1,6 @@
 package com.printflow.exception;
 
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -71,6 +73,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
         log.warn("Data integrity violation on {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
         return build(HttpStatus.CONFLICT, "Data conflicts with existing records or limits", request, null);
+    }
+
+    // error มาตรฐานของ Spring MVC (415 content-type ผิด, 405 method ผิด, ขาด request param ฯลฯ)
+    // ให้คืน status เดิมของมัน ไม่ให้ตกไปเป็น 500 ใน handler ด้านล่าง
+    @ExceptionHandler({ServletException.class, ErrorResponseException.class})
+    public ResponseEntity<ErrorResponse> handleSpringMvcError(Exception ex, HttpServletRequest request) {
+        if (ex instanceof org.springframework.web.ErrorResponse errorResponse) {
+            HttpStatus status = HttpStatus.valueOf(errorResponse.getStatusCode().value());
+            return build(status, ex.getMessage(), request, null);
+        }
+        return handleUnexpected(ex, request);
     }
 
     @ExceptionHandler(Exception.class)
