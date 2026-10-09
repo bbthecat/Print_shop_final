@@ -6,7 +6,7 @@
 
 <main class="container">
     <div class="page-header">
-        <h1 style="margin: 0;">แดชบอร์ดพนักงาน</h1>
+        <h1>ภาพรวมวันนี้</h1>
         <a class="btn" th:href="@{/staff/orders(status='PENDING')}">ดูงานที่รอยืนยัน</a>
     </div>
 
@@ -27,21 +27,21 @@
     </div>
 
     <h2>30 วันล่าสุด แยกตามสถานะ</h2>
-    <section class="card table-scroll">
+    <section class="card flush">
         <table>
             <thead>
             <tr>
                 <th>สถานะ</th>
-                <th>จำนวน</th>
-                <th></th>
+                <th class="num">จำนวน</th>
+                <th class="num"></th>
             </tr>
             </thead>
             <tbody>
             <tr th:each="entry : ${last30Days.ordersByStatus}">
                 <td><span class="badge" th:classappend="'status-' + ${entry.key.name().toLowerCase()}"
                           th:text="${entry.key.label}">รอร้านยืนยัน</span></td>
-                <td th:text="${entry.value}">0</td>
-                <td><a th:href="@{/staff/orders(status=${entry.key})}">ดูรายการ</a></td>
+                <td class="num" th:text="${entry.value}">0</td>
+                <td class="num"><a th:href="@{/staff/orders(status=${entry.key})}">ดูรายการ</a></td>
             </tr>
             </tbody>
         </table>
