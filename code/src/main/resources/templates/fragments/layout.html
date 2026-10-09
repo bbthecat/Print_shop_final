@@ -5,12 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${title} + ' | PrintFlow'">PrintFlow</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;600;700&amp;family=Anuphan:wght@400;500;600&amp;display=swap">
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
 
-<nav th:fragment="navbar" class="navbar">
-    <a class="brand" th:href="@{/}">PrintFlow</a>
+<nav th:fragment="navbar" class="navbar" aria-label="เมนูหลัก">
+    <a class="brand" th:href="@{/}">
+        <span class="brand-mark" aria-hidden="true"><span class="dot-a"></span><span class="dot-b"></span></span>
+        PrintFlow
+    </a>
     <div class="nav-links">
         <!-- เพิ่มเมนูของแต่ละส่วนงานที่นี่ (บริการ / คำสั่งซื้อ / Staff) -->
         <a th:href="@{/services}">บริการงานพิมพ์</a>
@@ -40,12 +46,42 @@
             <a th:href="@{/register}" class="btn btn-small">สมัครสมาชิก</a>
         </th:block>
     </div>
+    <script>
+        // ขีดเส้นใต้เมนูของหน้าที่เปิดอยู่ (เลือกลิงก์ที่ path ตรงยาวที่สุด)
+        (function () {
+            const path = location.pathname;
+            let best = null;
+            document.querySelectorAll('.nav-links a').forEach(function (a) {
+                const href = a.getAttribute('href');
+                if (href && href !== '/' && (path === href || path.startsWith(href + '/'))
+                        && (!best || href.length > best.getAttribute('href').length)) {
+                    best = a;
+                }
+            });
+            if (best) {
+                best.classList.add('active');
+                best.setAttribute('aria-current', 'page');
+            }
+        })();
+    </script>
 </nav>
 
 <div th:fragment="flash">
     <div th:if="${success}" class="alert alert-success" th:text="${success}">success</div>
     <div th:if="${error}" class="alert alert-error" th:text="${error}">error</div>
 </div>
+
+<!-- เส้นความคืบหน้า 5 ขั้นของงานพิมพ์ (ใช้ในหน้ารายละเอียดและหน้าติดตามสถานะ) -->
+<ol th:fragment="progress(status)" class="progress" aria-label="ความคืบหน้าของงาน"
+    th:with="steps=${ {'PENDING','CONFIRMED','PROCESSING','READY','COMPLETED'} },
+             current=${status.name() == 'CANCELLED' ? -1 : status.ordinal()}">
+    <li th:each="step, it : ${steps}"
+        th:with="stepStatus=${T(com.printflow.domain.enums.OrderStatus).valueOf(step)}"
+        th:classappend="${it.index < current} ? 'done' : (${it.index == current} ? 'now' : '')"
+        th:attr="aria-current=${it.index == current} ? 'step' : null">
+        <span th:if="${it.index == current and status.name() != 'COMPLETED'}" class="live" aria-hidden="true"></span><span th:text="${stepStatus.label}">รอร้านยืนยัน</span>
+    </li>
+</ol>
 
 <footer th:fragment="footer" class="footer">
     PrintFlow — ระบบจัดการร้านรับพิมพ์เอกสาร · CP353002

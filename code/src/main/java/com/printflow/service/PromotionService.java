@@ -29,4 +29,7 @@ public interface PromotionService {
                      LocalDateTime startDate, LocalDateTime endDate);
 
     void activate(Long id);
+
+    // ลบจริงได้เฉพาะโค้ดที่ยังไม่เคยถูกใช้ (โค้ดที่ใช้แล้วให้ปิดใช้งานแทน เพื่อเก็บประวัติส่วนลด)
+    void delete(Long id);
 }

@@ -5,6 +5,7 @@ import com.printflow.domain.enums.DiscountType;
 import com.printflow.exception.DuplicateResourceException;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.exception.ValidationException;
+import com.printflow.repository.OrderPromotionRepository;
 import com.printflow.repository.PromotionRepository;
 import com.printflow.service.PromotionService;
 import org.springframework.data.domain.Sort;
@@ -19,10 +20,13 @@ import java.util.List;
 public class PromotionServiceImpl implements PromotionService {
 
     private final PromotionRepository promotionRepository;
+    private final OrderPromotionRepository orderPromotionRepository;
 
     // Constructor Injection ตามเกณฑ์ห้าม @Autowired บน field
-    public PromotionServiceImpl(PromotionRepository promotionRepository) {
+    public PromotionServiceImpl(PromotionRepository promotionRepository,
+                                OrderPromotionRepository orderPromotionRepository) {
         this.promotionRepository = promotionRepository;
+        this.orderPromotionRepository = orderPromotionRepository;
     }
 
     @Override
@@ -90,6 +94,18 @@ public class PromotionServiceImpl implements PromotionService {
         promo.setActive(true);
 
         return promotionRepository.save(promo);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        Promotion promo = findById(id);
+        long used = orderPromotionRepository.countByPromotionId(id);
+        if (used > 0) {
+            throw new ValidationException("โค้ด " + promo.getCode() + " ถูกใช้ไปแล้ว " + used
+                    + " ครั้ง ลบไม่ได้ ให้ปิดใช้งานแทน");
+        }
+        promotionRepository.delete(promo);
     }
 
     @Override

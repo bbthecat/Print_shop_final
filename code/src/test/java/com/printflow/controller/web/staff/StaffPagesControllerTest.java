@@ -31,11 +31,14 @@ import java.time.LocalDateTime;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,9 +47,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-@WebMvcTest({StaffDashboardController.class, StaffOrderDetailPageController.class, StaffPaymentPageController.class})
+@WebMvcTest({StaffDashboardController.class, StaffOrderDetailPageController.class, StaffPaymentPageController.class,
+        StaffOrderPageController.class})
 @Import(SecurityConfig.class)
 class StaffPagesControllerTest {
 
@@ -76,6 +81,11 @@ class StaffPagesControllerTest {
                 new BigDecimal("32.00"), new BigDecimal("32.00"), List.of(1L), List.of("Corner Staple"));
         return new OrderResponse(10L, "ORD-1", 7L, "somchai", status,
                 new BigDecimal("1234.50"), LocalDateTime.now(), List.of(item));
+    }
+
+    private OrderResponse order(Long id, String number, OrderStatus status) {
+        return new OrderResponse(id, number, 7L, "somchai", status,
+                new BigDecimal("32.00"), LocalDateTime.now(), List.of());
     }
 
     private ReportSummaryResponse summary() {
@@ -125,6 +135,27 @@ class StaffPagesControllerTest {
 
     @Test
     @WithMockUser(roles = "STAFF")
+    void orderDetail_withPromotion_showsDiscountAndCode() throws Exception {
+        OrderResponse base = order(OrderStatus.PENDING);
+        OrderResponse discounted = new OrderResponse(base.id(), base.orderNumber(), base.userId(), base.customerName(),
+                base.status(), new BigDecimal("363.60"), base.createdAt(), base.items(),
+                new BigDecimal("40.40"), "SAVE10");
+        when(orderQueryService.getById(10L)).thenReturn(discounted);
+        when(orderStatusService.getHistories(10L)).thenReturn(List.of());
+        when(orderStatusService.getAllowedNextStatuses(OrderStatus.PENDING)).thenReturn(List.of(OrderStatus.CONFIRMED));
+
+        // 404.00 - 40.40 = 363.60
+        mockMvc.perform(get("/staff/orders/10"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("404.00 บาท")))
+                .andExpect(content().string(containsString("(โค้ด SAVE10)")))
+                .andExpect(content().string(containsString("-40.40 บาท")))
+                .andExpect(content().string(containsString("ยอดสุทธิ:")))
+                .andExpect(content().string(containsString("363.60 บาท")));
+    }
+
+    @Test
+    @WithMockUser(roles = "STAFF")
     void payments_cancelledOrder_hasNoPayButton() throws Exception {
         Payment payment = new Payment(10L, new BigDecimal("32.00"));
         PaymentResponse response = new PaymentResponse(1L, 10L, new BigDecimal("32.00"), null,
@@ -148,5 +179,76 @@ class StaffPagesControllerTest {
         mockMvc.perform(post("/staff/payments/10/paid").with(csrf()).param("method", "CASH"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attributeExists("error"));
+    }
+
+    @Test
+    @WithMockUser(roles = "STAFF")
+    void orderList_showsCheckboxesAndNextStep() throws Exception {
+        when(orderQueryService.getAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(
+                order(1L, "ORD-1", OrderStatus.PENDING), order(2L, "ORD-2", OrderStatus.COMPLETED))));
+        when(orderStatusService.getNextStatus(OrderStatus.PENDING)).thenReturn(Optional.of(OrderStatus.CONFIRMED));
+        when(orderStatusService.getNextStatus(OrderStatus.COMPLETED)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/staff/orders"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("name=\"orderIds\"")))
+                .andExpect(content().string(containsString("→ " + OrderStatus.CONFIRMED.getLabel())))
+                .andExpect(content().string(containsString("disabled=\"disabled\"")));
+    }
+
+    @Test
+    @WithMockUser(roles = "STAFF")
+    void advance_movesEachOrderToItsNextStatus_andSkipsFinishedOnes() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(5L);
+        when(orderQueryService.getById(1L)).thenReturn(order(1L, "ORD-1", OrderStatus.PENDING));
+        when(orderQueryService.getById(2L)).thenReturn(order(2L, "ORD-2", OrderStatus.READY));
+        when(orderQueryService.getById(3L)).thenReturn(order(3L, "ORD-3", OrderStatus.COMPLETED));
+        when(orderStatusService.getNextStatus(OrderStatus.PENDING)).thenReturn(Optional.of(OrderStatus.CONFIRMED));
+        when(orderStatusService.getNextStatus(OrderStatus.READY)).thenReturn(Optional.of(OrderStatus.COMPLETED));
+        when(orderStatusService.getNextStatus(OrderStatus.COMPLETED)).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/staff/orders/advance").with(csrf())
+                        .param("orderIds", "1", "2", "3")
+                        .param("status", "PENDING")
+                        .param("page", "1"))
+                .andExpect(redirectedUrl("/staff/orders?status=PENDING&page=1"))
+                .andExpect(flash().attribute("success", "เลื่อนสถานะสำเร็จ 2 รายการ"))
+                .andExpect(flash().attribute("error", "เลื่อนสถานะไม่ได้ 1 รายการ: ORD-3"));
+
+        verify(orderStatusService).changeStatus(1L, OrderStatus.CONFIRMED, 5L);
+        verify(orderStatusService).changeStatus(2L, OrderStatus.COMPLETED, 5L);
+        verify(orderStatusService, never()).changeStatus(org.mockito.ArgumentMatchers.eq(3L), any(), any());
+    }
+
+    @Test
+    @WithMockUser(roles = "STAFF")
+    void advance_oneFails_othersStillMove() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(5L);
+        when(orderQueryService.getById(1L)).thenReturn(order(1L, "ORD-1", OrderStatus.PENDING));
+        when(orderQueryService.getById(2L)).thenReturn(order(2L, "ORD-2", OrderStatus.PENDING));
+        when(orderStatusService.getNextStatus(OrderStatus.PENDING)).thenReturn(Optional.of(OrderStatus.CONFIRMED));
+        when(orderStatusService.changeStatus(1L, OrderStatus.CONFIRMED, 5L))
+                .thenThrow(new InvalidStateTransitionException("already cancelled"));
+
+        mockMvc.perform(post("/staff/orders/advance").with(csrf()).param("orderIds", "1", "2"))
+                .andExpect(redirectedUrl("/staff/orders?page=0"))
+                .andExpect(flash().attribute("success", "เลื่อนสถานะสำเร็จ 1 รายการ"))
+                .andExpect(flash().attribute("error", "เลื่อนสถานะไม่ได้ 1 รายการ: ORD-1"));
+    }
+
+    @Test
+    @WithMockUser(roles = "STAFF")
+    void advance_nothingSelected_showsError() throws Exception {
+        mockMvc.perform(post("/staff/orders/advance").with(csrf()))
+                .andExpect(redirectedUrl("/staff/orders?page=0"))
+                .andExpect(flash().attribute("error", "กรุณาเลือกคำสั่งซื้ออย่างน้อย 1 รายการ"));
+    }
+
+    @Test
+    @WithMockUser(roles = "CUSTOMER")
+    void advance_asCustomer_returns403() throws Exception {
+        mockMvc.perform(post("/staff/orders/advance").with(csrf()).param("orderIds", "1"))
+                .andExpect(status().isForbidden());
+        verify(orderStatusService, never()).changeStatus(any(), any(), any());
     }
 }

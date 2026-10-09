@@ -8,102 +8,39 @@
 <main class="container">
     <div class="page-header">
         <div>
-            <h1 style="margin: 0;">ติดตามสถานะงานพิมพ์</h1>
-            <p class="muted" style="margin: 4px 0 0 0;" th:text="'คำสั่งซื้อ: ' + ${order.orderNumber}">ORD-12345</p>
+            <h1>ติดตามสถานะงานพิมพ์</h1>
+            <p class="muted" style="margin: 6px 0 0;" th:text="'คำสั่งซื้อ ' + ${order.orderNumber}">ORD-12345</p>
         </div>
-        <div style="display: flex; gap: 8px;">
-            <a th:href="@{'/orders/' + ${order.id}}" class="btn btn-secondary">ดูใบเสร็จ / รายละเอียด</a>
-            <a th:href="@{/orders}" class="btn btn-secondary">ประวัติคำสั่งซื้อ</a>
+        <div class="inline-controls">
+            <a th:href="@{'/orders/' + ${order.id}}" class="btn btn-secondary">ดูรายละเอียด</a>
+            <a th:href="@{/orders}" class="btn btn-secondary">งานของฉัน</a>
         </div>
     </div>
 
     <div th:replace="~{fragments/layout :: flash}"></div>
 
-    <!-- Tracking Stepper Card -->
-    <div class="card" style="padding: 32px 24px;">
-        <h2 style="font-size: 1.25rem; margin-bottom: 32px; text-align: center;">ลำดับขั้นตอนการดำเนินงาน</h2>
+    <section style="max-width: 820px;">
+        <ol th:replace="~{fragments/layout :: progress(${order.status})}"></ol>
 
-        <!-- สถานะปกติ 5 ขั้นตอน -->
-        <div th:if="${order.status.name() != 'CANCELLED'}"
-             class="stepper">
-
-            <!-- เส้นเชื่อม Progress Line -->
-            <div style="position: absolute; top: 20px; left: 40px; right: 40px; height: 4px; background: var(--border); z-index: 1;"></div>
-
-            <!-- Step 1: PENDING -->
-            <div style="position: relative; z-index: 2; text-align: center; flex: 1;">
-                <div style="width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px auto; font-weight: bold;"
-                     th:styleappend="${order.status.name() == 'PENDING' or order.status.name() == 'CONFIRMED' or order.status.name() == 'PROCESSING' or order.status.name() == 'READY' or order.status.name() == 'COMPLETED'} ? 'background: var(--primary); color: #fff;' : 'background: #eef2f6; color: var(--muted);'">
-                    1
-                </div>
-                <div style="font-weight: 600; font-size: 0.95rem;">รอยืนยัน</div>
-                <div class="muted" style="font-size: 0.8rem;">PENDING</div>
-            </div>
-
-            <!-- Step 2: CONFIRMED -->
-            <div style="position: relative; z-index: 2; text-align: center; flex: 1;">
-                <div style="width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px auto; font-weight: bold;"
-                     th:styleappend="${order.status.name() == 'CONFIRMED' or order.status.name() == 'PROCESSING' or order.status.name() == 'READY' or order.status.name() == 'COMPLETED'} ? 'background: var(--primary); color: #fff;' : 'background: #eef2f6; color: var(--muted);'">
-                    2
-                </div>
-                <div style="font-weight: 600; font-size: 0.95rem;">ร้านรับงานแล้ว</div>
-                <div class="muted" style="font-size: 0.8rem;">CONFIRMED</div>
-            </div>
-
-            <!-- Step 3: PROCESSING -->
-            <div style="position: relative; z-index: 2; text-align: center; flex: 1;">
-                <div style="width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px auto; font-weight: bold;"
-                     th:styleappend="${order.status.name() == 'PROCESSING' or order.status.name() == 'READY' or order.status.name() == 'COMPLETED'} ? 'background: var(--primary); color: #fff;' : 'background: #eef2f6; color: var(--muted);'">
-                    3
-                </div>
-                <div style="font-weight: 600; font-size: 0.95rem;">กำลังพิมพ์</div>
-                <div class="muted" style="font-size: 0.8rem;">PROCESSING</div>
-            </div>
-
-            <!-- Step 4: READY -->
-            <div style="position: relative; z-index: 2; text-align: center; flex: 1;">
-                <div style="width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px auto; font-weight: bold;"
-                     th:styleappend="${order.status.name() == 'READY' or order.status.name() == 'COMPLETED'} ? 'background: var(--primary); color: #fff;' : 'background: #eef2f6; color: var(--muted);'">
-                    4
-                </div>
-                <div style="font-weight: 600; font-size: 0.95rem;">งานเสร็จพร้อมรับ</div>
-                <div class="muted" style="font-size: 0.8rem;">READY</div>
-            </div>
-
-            <!-- Step 5: COMPLETED -->
-            <div style="position: relative; z-index: 2; text-align: center; flex: 1;">
-                <div style="width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px auto; font-weight: bold;"
-                     th:styleappend="${order.status.name() == 'COMPLETED'} ? 'background: #1e6b34; color: #fff;' : 'background: #eef2f6; color: var(--muted);'">
-                    ✓
-                </div>
-                <div style="font-weight: 600; font-size: 0.95rem;">ส่งมอบเรียบร้อย</div>
-                <div class="muted" style="font-size: 0.8rem;">COMPLETED</div>
-            </div>
+        <div th:if="${order.status.name() == 'CANCELLED'}" class="alert alert-error" style="margin-top: 24px;">
+            <strong>คำสั่งซื้อนี้ถูกยกเลิกแล้ว</strong> — ไม่มีการดำเนินการต่อ ถ้าชำระเงินไปแล้วร้านจะคืนเงินให้
         </div>
 
-        <!-- กล่องสถานะยกเลิก (CANCELLED) -->
-        <div th:if="${order.status.name() == 'CANCELLED'}" class="alert alert-error" style="text-align: center; padding: 20px;">
-            <h3 style="margin: 0 0 8px 0;">คำสั่งซื้อนี้ถูกยกเลิกแล้ว (CANCELLED)</h3>
-            <p style="margin: 0;">คำสั่งซื้อนี้ถูกยกเลิกเรียบร้อยแล้ว ไม่มีการดำเนินการต่อในระบบ</p>
-        </div>
-
-        <!-- กล่องคำอธิบายสถานะปัจจุบัน -->
-        <div style="background: var(--bg); border-radius: 8px; padding: 20px; max-width: 700px; margin: 0 auto;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
-                <span style="font-size: 1.1rem; font-weight: 600;">สถานะปัจจุบัน:</span>
-                <span class="badge" style="font-size: 1rem; font-weight: bold; padding: 4px 14px; background: var(--primary); color: #fff;"
+        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);">
+            <p style="margin: 0 0 6px;">สถานะปัจจุบัน:
+                <span class="badge" th:classappend="'status-' + ${order.status.name().toLowerCase()}"
                       th:text="${order.status.label}">รอร้านยืนยัน</span>
-            </div>
-            <div style="color: var(--muted); font-size: 0.95rem; line-height: 1.5;">
-                <span th:if="${order.status.name() == 'PENDING'}">คำสั่งซื้อถูกส่งเข้าระบบเรียบร้อยแล้ว กำลังรอพนักงานของร้านกดยืนยันเพื่อเริ่มดำเนินการ</span>
-                <span th:if="${order.status.name() == 'CONFIRMED'}">พนักงานยืนยันรับงานแล้ว งานพิมพ์กำลังจัดคิวเพื่อส่งเข้าเครื่องพิมพ์</span>
-                <span th:if="${order.status.name() == 'PROCESSING'}">งานพิมพ์ของคุณกำลังอยู่ในขั้นตอนการพิมพ์และจัดทำรูปเล่ม/บริการเสริม</span>
-                <span th:if="${order.status.name() == 'READY'}">งานพิมพ์เสร็จสมบูรณ์เรียบร้อยแล้ว! สามารถเดินทางมาติดต่อรับชิ้นงานและชำระเงินที่หน้าร้านได้ทันที</span>
-                <span th:if="${order.status.name() == 'COMPLETED'}">ส่งมอบงานพิมพ์ให้ลูกค้าเรียบร้อยแล้ว ขอบคุณที่ไว้วางใจใช้บริการ PrintFlow</span>
+            </p>
+            <p class="muted" style="margin: 0;">
+                <span th:if="${order.status.name() == 'PENDING'}">คำสั่งซื้อเข้าระบบแล้ว กำลังรอพนักงานของร้านยืนยันเพื่อเริ่มงาน</span>
+                <span th:if="${order.status.name() == 'CONFIRMED'}">ร้านรับงานแล้ว กำลังจัดคิวเข้าเครื่องพิมพ์</span>
+                <span th:if="${order.status.name() == 'PROCESSING'}">งานของคุณกำลังพิมพ์และทำงานเก็บเล่ม</span>
+                <span th:if="${order.status.name() == 'READY'}">งานพิมพ์เสร็จแล้ว มารับและชำระเงินที่หน้าร้านได้ทันที</span>
+                <span th:if="${order.status.name() == 'COMPLETED'}">ส่งมอบงานเรียบร้อย ขอบคุณที่ใช้บริการ PrintFlow</span>
                 <span th:if="${order.status.name() == 'CANCELLED'}">คำสั่งซื้อถูกยกเลิกแล้ว</span>
-            </div>
+            </p>
         </div>
-    </div>
+    </section>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
