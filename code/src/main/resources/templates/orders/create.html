@@ -40,15 +40,23 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="quantity">จำนวนที่พิมพ์ (ชุด/แผ่น) <span style="color: var(--error-text);">*</span></label>
+                        <label for="pageCount">จำนวนหน้าต่อชุด <span style="color: var(--error-text);">*</span></label>
+                        <input type="number" id="pageCount" th:field="*{pageCount}" min="1" required
+                               th:classappend="${#fields.hasErrors('pageCount')} ? 'invalid' : ''">
+                        <div class="field-error" th:if="${#fields.hasErrors('pageCount')}" th:errors="*{pageCount}"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">จำนวนชุด <span style="color: var(--error-text);">*</span></label>
                         <input type="number" id="quantity" th:field="*{quantity}" min="1" required
                                th:classappend="${#fields.hasErrors('quantity')} ? 'invalid' : ''">
                         <div class="field-error" th:if="${#fields.hasErrors('quantity')}" th:errors="*{quantity}"></div>
                     </div>
-                    <div class="form-group">
-                        <label for="fileName">ชื่อไฟล์เอกสาร</label>
-                        <input type="text" id="fileName" th:field="*{fileName}" placeholder="เช่น project_final.pdf">
-                    </div>
+                </div>
+                <small class="muted">ตัวอย่าง: รายงาน 20 หน้า พิมพ์ 2 เล่ม → จำนวนหน้า 20, จำนวนชุด 2 (บริการเสริมคิดต่อชุด)</small>
+
+                <div class="form-group" style="margin-top: 12px;">
+                    <label for="fileName">ชื่อไฟล์เอกสาร</label>
+                    <input type="text" id="fileName" th:field="*{fileName}" placeholder="เช่น project_final.pdf">
                 </div>
 
                 <!-- บริการเสริม -->

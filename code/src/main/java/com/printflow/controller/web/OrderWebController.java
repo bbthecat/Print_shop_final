@@ -16,8 +16,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -78,19 +76,19 @@ public class OrderWebController {
 
             OrderItemRequest itemRequest = new OrderItemRequest(
                     form.getServiceId(),
+                    form.getPageCount(),
                     form.getQuantity(),
                     form.getAddonIds() != null ? form.getAddonIds() : List.of()
             );
 
             OrderCreateRequest request = new OrderCreateRequest(
-                    userId,
                     List.of(itemRequest),
                     form.getPromotionCode() != null && !form.getPromotionCode().isBlank()
                             ? form.getPromotionCode().trim()
                             : null
             );
 
-            OrderResponse createdOrder = orderCommandService.createOrder(request);
+            OrderResponse createdOrder = orderCommandService.createOrder(userId, request);
             redirect.addFlashAttribute("success", "สร้างคำสั่งซื้อ " + createdOrder.orderNumber() + " สำเร็จแล้ว!");
             return "redirect:/orders/" + createdOrder.id();
 
@@ -110,10 +108,7 @@ public class OrderWebController {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Long userId = currentUserProvider.getCurrentUserId();
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isStaffOrAdmin = auth != null && auth.getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_STAFF")
-        );
+        boolean isStaffOrAdmin = currentUserProvider.isStaffOrAdmin();
 
         Page<OrderResponse> orders;
         if (Boolean.TRUE.equals(all) && isStaffOrAdmin) {
@@ -131,16 +126,25 @@ public class OrderWebController {
 
     @GetMapping("/{id}")
     public String getOrderDetail(@PathVariable Long id, Model model) {
-        OrderResponse order = orderQueryService.getById(id);
+        OrderResponse order = findVisibleOrder(id);
         model.addAttribute("order", order);
         return "orders/detail";
     }
 
     @GetMapping("/{id}/tracking")
     public String getOrderTracking(@PathVariable Long id, Model model) {
-        OrderResponse order = orderQueryService.getById(id);
+        OrderResponse order = findVisibleOrder(id);
         model.addAttribute("order", order);
         return "orders/tracking";
+    }
+
+    // ลูกค้าดูได้เฉพาะ order ของตัวเอง STAFF/ADMIN ดูได้ทุก order
+    private OrderResponse findVisibleOrder(Long id) {
+        return orderQueryService.getByIdForUser(
+                id,
+                currentUserProvider.getCurrentUserId(),
+                currentUserProvider.isStaffOrAdmin()
+        );
     }
 
     private void populateCatalog(Model model) {

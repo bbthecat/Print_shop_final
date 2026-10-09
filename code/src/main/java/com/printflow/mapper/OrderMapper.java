@@ -13,10 +13,17 @@ import java.util.Map;
 @Component
 public class OrderMapper {
 
+    /**
+     * @param addonIdsByItemId id ของบริการเสริมในแต่ละ item
+     * @param serviceNames     ชื่อบริการพิมพ์ (key = serviceId)
+     * @param addonNames       ชื่อบริการเสริม (key = addonId)
+     */
     public OrderResponse toResponse(
             PrintOrder order,
             List<PrintItem> items,
-            Map<Long, List<Long>> addonIdsByItemId
+            Map<Long, List<Long>> addonIdsByItemId,
+            Map<Long, String> serviceNames,
+            Map<Long, String> addonNames
     ) {
         List<OrderItemResponse> itemResponses =
                 items == null
@@ -27,7 +34,9 @@ public class OrderMapper {
                                         addonIdsByItemId.getOrDefault(
                                                 item.getId(),
                                                 Collections.emptyList()
-                                        )
+                                        ),
+                                        serviceNames,
+                                        addonNames
                                 ))
                                 .toList();
 
@@ -44,15 +53,24 @@ public class OrderMapper {
 
     public OrderItemResponse toItemResponse(
             PrintItem item,
-            List<Long> addonIds
+            List<Long> addonIds,
+            Map<Long, String> serviceNames,
+            Map<Long, String> addonNames
     ) {
+        List<String> names = addonIds.stream()
+                .map(id -> addonNames.getOrDefault(id, "#" + id))
+                .toList();
+
         return new OrderItemResponse(
                 item.getId(),
                 item.getServiceId(),
+                serviceNames.getOrDefault(item.getServiceId(), "#" + item.getServiceId()),
+                item.getPageCount(),
                 item.getQuantity(),
                 item.getUnitPrice(),
                 item.getSubtotal(),
-                addonIds
+                addonIds,
+                names
         );
     }
 }

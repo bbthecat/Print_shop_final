@@ -2,14 +2,11 @@ package com.printflow.dto.request;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
+// ไม่มี userId: เจ้าของ order คือคนที่ login อยู่เสมอ (ส่งเข้า service จาก controller)
 public record OrderCreateRequest(
-
-        @NotNull
-        Long userId,
 
         @NotEmpty
         List<@Valid OrderItemRequest> items,

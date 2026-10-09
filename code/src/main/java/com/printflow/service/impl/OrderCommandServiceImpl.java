@@ -11,16 +11,19 @@ import com.printflow.domain.enums.OrderStatus;
 import com.printflow.dto.request.OrderCreateRequest;
 import com.printflow.dto.request.OrderItemRequest;
 import com.printflow.dto.response.OrderResponse;
+import com.printflow.exception.InvalidStateTransitionException;
 import com.printflow.exception.ResourceNotFoundException;
-import com.printflow.mapper.OrderMapper;
+import com.printflow.exception.ValidationException;
 import com.printflow.repository.OrderPromotionRepository;
 import com.printflow.repository.OrderRepository;
 import com.printflow.repository.PrintItemAddonRepository;
 import com.printflow.repository.PrintItemRepository;
 import com.printflow.service.OrderCommandService;
+import com.printflow.service.OrderQueryService;
 import com.printflow.service.PromotionService;
 import com.printflow.service.ServiceCatalogQueryService;
 import com.printflow.service.event.OrderCreatedEvent;
+import com.printflow.service.strategy.discount.DiscountStrategyResolver;
 import com.printflow.service.strategy.pricing.PricingCalculator;
 import com.printflow.validation.OrderValidationContext;
 import com.printflow.validation.OrderValidationHandler;
@@ -31,9 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @Transactional
@@ -46,7 +47,8 @@ public class OrderCommandServiceImpl implements OrderCommandService {
     private final ServiceCatalogQueryService serviceCatalogQueryService;
     private final PromotionService promotionService;
     private final PricingCalculator pricingCalculator;
-    private final OrderMapper orderMapper;
+    private final DiscountStrategyResolver discountStrategyResolver;
+    private final OrderQueryService orderQueryService;
     private final OrderValidationHandler orderValidationChain;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -58,7 +60,8 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             ServiceCatalogQueryService serviceCatalogQueryService,
             PromotionService promotionService,
             PricingCalculator pricingCalculator,
-            OrderMapper orderMapper,
+            DiscountStrategyResolver discountStrategyResolver,
+            OrderQueryService orderQueryService,
             OrderValidationHandler orderValidationChain,
             ApplicationEventPublisher eventPublisher
     ) {
@@ -69,17 +72,18 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         this.serviceCatalogQueryService = serviceCatalogQueryService;
         this.promotionService = promotionService;
         this.pricingCalculator = pricingCalculator;
-        this.orderMapper = orderMapper;
+        this.discountStrategyResolver = discountStrategyResolver;
+        this.orderQueryService = orderQueryService;
         this.orderValidationChain = orderValidationChain;
         this.eventPublisher = eventPublisher;
     }
 
     @Override
-    public OrderResponse createOrder(OrderCreateRequest request) {
+    public OrderResponse createOrder(Long userId, OrderCreateRequest request) {
 
         PrintOrder order = new PrintOrder(
                 generateOrderNumber(),
-                request.userId(),
+                userId,
                 OrderStatus.PENDING,
                 BigDecimal.ZERO
         );
@@ -90,6 +94,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
                 itemsToValidate.add(new PrintItem(
                         order,
                         itemRequest.serviceId(),
+                        itemRequest.pageCount(),
                         itemRequest.quantity(),
                         BigDecimal.ZERO,
                         BigDecimal.ZERO
@@ -97,9 +102,10 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             }
         }
 
+        Promotion promotion = null;
         List<OrderPromotion> promotionsToValidate = new ArrayList<>();
         if (request.promotionCode() != null && !request.promotionCode().isBlank()) {
-            Promotion promotion = promotionService.findValidByCode(request.promotionCode());
+            promotion = promotionService.findValidByCode(request.promotionCode());
             promotionsToValidate.add(new OrderPromotion(
                     order,
                     promotion.getId(),
@@ -119,7 +125,6 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         order = orderRepository.save(order);
 
         BigDecimal orderTotal = BigDecimal.ZERO;
-        List<PrintItem> items = new ArrayList<>();
 
         for (OrderItemRequest itemRequest : request.items()) {
 
@@ -143,8 +148,9 @@ public class OrderCommandServiceImpl implements OrderCommandService {
                 }
             }
 
-            int pageCount = 1;
-            int copyCount = Math.max(1, itemRequest.quantity());
+            // ราคา = ราคาพิมพ์ (ตาม Strategy ของประเภทงาน) + บริการเสริม x จำนวนชุด
+            int pageCount = itemRequest.pageCount();
+            int copyCount = itemRequest.quantity();
 
             BigDecimal itemTotal =
                     pricingCalculator.calculateItemTotal(
@@ -155,6 +161,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
                             addonPrices
                     );
 
+            // ราคาต่อ 1 ชุด
             BigDecimal unitPrice = itemTotal.divide(
                     BigDecimal.valueOf(copyCount),
                     2,
@@ -164,13 +171,13 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             PrintItem item = new PrintItem(
                     order,
                     printService.getId(),
-                    itemRequest.quantity(),
+                    pageCount,
+                    copyCount,
                     unitPrice,
                     itemTotal
             );
 
             item = printItemRepository.save(item);
-            items.add(item);
 
             for (AddonService addon : addons) {
                 PrintItemAddon itemAddon = new PrintItemAddon(
@@ -185,30 +192,15 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             orderTotal = orderTotal.add(itemTotal);
         }
 
-        if (request.promotionCode() != null
-                && !request.promotionCode().isBlank()) {
-
-            Promotion promotion =
-                    promotionService.findValidByCode(
-                            request.promotionCode()
-                    );
-
-            BigDecimal discount =
-                    calculateDiscount(promotion, orderTotal);
-
+        if (promotion != null) {
+            BigDecimal discount = calculateDiscount(promotion, orderTotal);
             orderTotal = orderTotal.subtract(discount);
 
-            if (orderTotal.compareTo(BigDecimal.ZERO) < 0) {
-                orderTotal = BigDecimal.ZERO;
-            }
-
-            OrderPromotion orderPromotion = new OrderPromotion(
+            orderPromotionRepository.save(new OrderPromotion(
                     order,
                     promotion.getId(),
                     discount
-            );
-
-            orderPromotionRepository.save(orderPromotion);
+            ));
         }
 
         order.setTotalPrice(orderTotal);
@@ -216,76 +208,44 @@ public class OrderCommandServiceImpl implements OrderCommandService {
 
         eventPublisher.publishEvent(new OrderCreatedEvent(order.getId()));
 
-        Map<Long, List<Long>> itemAddonIds = new HashMap<>();
-
-        for (PrintItem item : items) {
-            List<Long> addonIds = printItemAddonRepository
-                    .findByItemId(item.getId())
-                    .stream()
-                    .map(PrintItemAddon::getAddonId)
-                    .toList();
-
-            itemAddonIds.put(item.getId(), addonIds);
-        }
-
-        return orderMapper.toResponse(
-                order,
-                items,
-                itemAddonIds
-        );
+        return orderQueryService.getById(order.getId());
     }
 
     @Override
     public void deleteOrder(Long id) {
 
-        if (!orderRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Order not found: " + id
+        PrintOrder order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Order not found: " + id
+                ));
+
+        // ลบได้เฉพาะ order ที่ยังไม่เริ่มงาน (ยังไม่มีประวัติสถานะ)
+        // order ที่เริ่มแล้วให้เปลี่ยนเป็น CANCELLED แทน เพื่อเก็บประวัติไว้
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new InvalidStateTransitionException(
+                    "Only PENDING orders can be deleted. Cancel the order instead: " + id
             );
         }
 
-        orderRepository.deleteById(id);
+        orderRepository.delete(order);
     }
 
     private String generateOrderNumber() {
         return "ORD-" + System.currentTimeMillis();
     }
 
-    private BigDecimal calculateDiscount(
-            Promotion promotion,
-            BigDecimal orderTotal
-    ) {
-
-        if (promotion == null) {
-            return BigDecimal.ZERO;
-        }
-
+    // ใช้ Strategy ส่วนลดของ P2 (PERCENTAGE / FIXED_AMOUNT) แทนการเขียน if/switch เอง
+    private BigDecimal calculateDiscount(Promotion promotion, BigDecimal orderTotal) {
         if (promotion.getMinOrderAmount() != null
-                && orderTotal.compareTo(
-                        promotion.getMinOrderAmount()
-                ) < 0) {
-            return BigDecimal.ZERO;
+                && orderTotal.compareTo(promotion.getMinOrderAmount()) < 0) {
+            throw new ValidationException(
+                    "ยอดสั่งซื้อ " + orderTotal + " บาท ยังไม่ถึงขั้นต่ำของโปรโมชัน "
+                            + promotion.getCode() + " (" + promotion.getMinOrderAmount() + " บาท)"
+            );
         }
 
-        BigDecimal discountValue =
-                promotion.getDiscountValue();
-
-        if (discountValue == null
-                || discountValue.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
-        }
-
-        return switch (promotion.getDiscountType()) {
-
-            case PERCENTAGE -> orderTotal
-                    .multiply(discountValue)
-                    .divide(
-                            BigDecimal.valueOf(100),
-                            2,
-                            RoundingMode.HALF_UP
-                    );
-
-            case FIXED_AMOUNT -> discountValue.min(orderTotal);
-        };
+        return discountStrategyResolver
+                .resolve(promotion.getDiscountType())
+                .calculate(orderTotal, promotion);
     }
 }

@@ -63,6 +63,7 @@ class OrderValidationChainTest {
         PrintItem item = new PrintItem(
                 order,
                 1L,
+                1,
                 quantity,
                 BigDecimal.TEN,
                 BigDecimal.TEN

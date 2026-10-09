@@ -9,6 +9,11 @@ public interface OrderQueryService {
 
     OrderResponse getById(Long id);
 
+    /**
+     * ดู order ได้เฉพาะของตัวเอง ยกเว้น STAFF/ADMIN (canViewAll = true) ที่ดูได้ทุก order
+     */
+    OrderResponse getByIdForUser(Long id, Long userId, boolean canViewAll);
+
     Page<OrderResponse> getAll(Pageable pageable);
 
     Page<OrderResponse> getAllByStatus(
@@ -21,4 +26,3 @@ public interface OrderQueryService {
             Pageable pageable
     );
 }
-

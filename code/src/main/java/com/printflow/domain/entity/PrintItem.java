@@ -19,6 +19,11 @@ public class PrintItem {
     @Column(name = "service_id", nullable = false)
     private Long serviceId;
 
+    // จำนวนหน้าต่อ 1 ชุด
+    @Column(name = "page_count", nullable = false)
+    private Integer pageCount;
+
+    // จำนวนชุด
     @Column(nullable = false)
     private Integer quantity;
 
@@ -34,12 +39,14 @@ public class PrintItem {
     public PrintItem(
             PrintOrder order,
             Long serviceId,
+            Integer pageCount,
             Integer quantity,
             BigDecimal unitPrice,
             BigDecimal subtotal
     ) {
         this.order = order;
         this.serviceId = serviceId;
+        this.pageCount = pageCount;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.subtotal = subtotal;
@@ -55,6 +62,10 @@ public class PrintItem {
 
     public Long getServiceId() {
         return serviceId;
+    }
+
+    public Integer getPageCount() {
+        return pageCount;
     }
 
     public Integer getQuantity() {
