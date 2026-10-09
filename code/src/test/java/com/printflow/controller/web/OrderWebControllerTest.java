@@ -29,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -63,6 +64,9 @@ class OrderWebControllerTest {
     @MockBean
     private OrderStatusService orderStatusService;
 
+    @MockBean
+    private com.printflow.service.PaymentService paymentService;
+
     private OrderResponse sampleOrderResponse() {
         OrderItemResponse item = new OrderItemResponse(
                 1L, 1L, "Document B&W (A4)", 20, 2, BigDecimal.valueOf(5.00), BigDecimal.valueOf(10.00),
@@ -84,7 +88,10 @@ class OrderWebControllerTest {
         mockMvc.perform(get("/orders/create"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("orders/create"))
-                .andExpect(model().attributeExists("services", "addons", "promotions", "form"));
+                .andExpect(model().attributeExists("services", "addons", "promotions", "form"))
+                // ช่องเลือกไฟล์ไว้นับหน้าในเบราว์เซอร์ ไม่มี name จึงไม่ส่งไฟล์ขึ้น server
+                .andExpect(content().string(containsString("<input type=\"file\" id=\"filePicker\" accept=\".pdf,.jpg,.jpeg,.png\">")))
+                .andExpect(content().string(containsString("pdf.js/3.11.174/")));
     }
 
     @Test
@@ -102,7 +109,29 @@ class OrderWebControllerTest {
         // Thymeleaf 3.1 ห้ามใส่ string ใน th:onclick ถ้าใช้ผิดหน้านี้จะ error 500
         mockMvc.perform(get("/orders/create"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("data-code=\"WELCOME10\"")));
+                .andExpect(content().string(containsString("data-code=\"WELCOME10\"")))
+                .andExpect(content().string(not(containsString("ใช้แล้ว</span>"))));
+    }
+
+    @Test
+    @WithMockUser
+    void showCreateForm_promotionAlreadyUsed_isMarkedAndDisabled() throws Exception {
+        Promotion promo = new Promotion();
+        promo.setId(5L);
+        promo.setCode("WELCOME10");
+        promo.setDiscountType(DiscountType.PERCENTAGE);
+        promo.setDiscountValue(BigDecimal.TEN);
+        promo.setMinOrderAmount(BigDecimal.ZERO);
+        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
+        when(orderQueryService.getUsedPromotionIds(1L)).thenReturn(java.util.Set.of(5L));
+        when(catalogQueryService.findAllActivePrintServices()).thenReturn(List.of());
+        when(catalogQueryService.findAllActiveAddonServices()).thenReturn(List.of());
+        when(promotionService.findAllActive()).thenReturn(List.of(promo));
+
+        mockMvc.perform(get("/orders/create"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("ใช้แล้ว</span>")))
+                .andExpect(content().string(containsString("disabled=\"disabled\"")));
     }
 
     @Test

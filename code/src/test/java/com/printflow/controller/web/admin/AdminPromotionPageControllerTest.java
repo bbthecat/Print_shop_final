@@ -130,4 +130,34 @@ class AdminPromotionPageControllerTest {
         mockMvc.perform(get("/admin/promotions"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void delete_unusedPromotion_redirectsWithSuccess() throws Exception {
+        mockMvc.perform(post("/admin/promotions/1/delete").with(csrf()))
+                .andExpect(redirectedUrl("/admin/promotions"))
+                .andExpect(flash().attribute("success", "ลบโปรโมชันเรียบร้อยแล้ว"));
+
+        verify(promotionService).delete(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void delete_usedPromotion_showsErrorInsteadOfDeleting() throws Exception {
+        org.mockito.Mockito.doThrow(new com.printflow.exception.ValidationException(
+                        "โค้ด SAVE10 ถูกใช้ไปแล้ว 3 ครั้ง ลบไม่ได้ ให้ปิดใช้งานแทน"))
+                .when(promotionService).delete(1L);
+
+        mockMvc.perform(post("/admin/promotions/1/delete").with(csrf()))
+                .andExpect(redirectedUrl("/admin/promotions"))
+                .andExpect(flash().attribute("error", "โค้ด SAVE10 ถูกใช้ไปแล้ว 3 ครั้ง ลบไม่ได้ ให้ปิดใช้งานแทน"));
+    }
+
+    @Test
+    @WithMockUser(roles = "STAFF")
+    void delete_asStaff_returns403() throws Exception {
+        mockMvc.perform(post("/admin/promotions/1/delete").with(csrf()))
+                .andExpect(status().isForbidden());
+        org.mockito.Mockito.verify(promotionService, org.mockito.Mockito.never()).delete(any());
+    }
 }

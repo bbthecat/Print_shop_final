@@ -7,6 +7,7 @@ import com.printflow.domain.entity.PrintOrder;
 import com.printflow.domain.entity.Promotion;
 import com.printflow.domain.enums.OrderStatus;
 import com.printflow.exception.ValidationException;
+import com.printflow.repository.OrderPromotionRepository;
 import com.printflow.repository.PromotionRepository;
 import com.printflow.service.ServiceCatalogQueryService;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,8 @@ class OrderValidationChainTest {
             Mockito.mock(ServiceCatalogQueryService.class);
     private final PromotionRepository promotionRepository =
             Mockito.mock(PromotionRepository.class);
+    private final OrderPromotionRepository orderPromotionRepository =
+            Mockito.mock(OrderPromotionRepository.class);
 
     private OrderValidationHandler createChain() {
         OrderValidationHandler serviceHandler =
@@ -40,10 +43,14 @@ class OrderValidationChainTest {
         OrderValidationHandler promotionHandler =
                 new PromotionValidityHandler(promotionRepository);
 
+        OrderValidationHandler usageLimitHandler =
+                new PromotionUsageLimitHandler(orderPromotionRepository, promotionRepository);
+
         serviceHandler
                 .setNext(fileTypeHandler)
                 .setNext(quantityHandler)
-                .setNext(promotionHandler);
+                .setNext(promotionHandler)
+                .setNext(usageLimitHandler);
 
         return serviceHandler;
     }
@@ -197,5 +204,40 @@ class OrderValidationChainTest {
                 ValidationException.class,
                 () -> createChain().handle(createContext(2, List.of(), List.of(orderPromo)))
         );
+    }
+
+    private OrderPromotion validPromotion(PrintOrder order) {
+        Promotion promo = new Promotion();
+        promo.setCode("SAVE10");
+        promo.setActive(true);
+        promo.setStartDate(LocalDateTime.now().minusDays(1));
+        promo.setEndDate(LocalDateTime.now().plusDays(1));
+        Mockito.when(promotionRepository.findById(10L)).thenReturn(Optional.of(promo));
+        return new OrderPromotion(order, 10L, BigDecimal.TEN);
+    }
+
+    @Test
+    void shouldPassWhenCustomerHasNotUsedThePromotionYet() {
+        PrintOrder order = new PrintOrder("ORD-TEST", 1L, OrderStatus.PENDING, BigDecimal.ZERO);
+        OrderPromotion orderPromo = validPromotion(order);
+        Mockito.when(orderPromotionRepository.existsByPromotionIdAndOrder_UserIdAndOrder_StatusNot(
+                10L, 1L, OrderStatus.CANCELLED)).thenReturn(false);
+
+        assertDoesNotThrow(() -> createChain().handle(createContext(2, List.of(), List.of(orderPromo))));
+    }
+
+    @Test
+    void shouldRejectWhenCustomerAlreadyUsedThePromotion() {
+        PrintOrder order = new PrintOrder("ORD-TEST", 1L, OrderStatus.PENDING, BigDecimal.ZERO);
+        OrderPromotion orderPromo = validPromotion(order);
+        // นับเฉพาะ order ที่ไม่ได้ถูกยกเลิก
+        Mockito.when(orderPromotionRepository.existsByPromotionIdAndOrder_UserIdAndOrder_StatusNot(
+                10L, 1L, OrderStatus.CANCELLED)).thenReturn(true);
+
+        ValidationException ex = assertThrows(
+                ValidationException.class,
+                () -> createChain().handle(createContext(2, List.of(), List.of(orderPromo)))
+        );
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("SAVE10"));
     }
 }

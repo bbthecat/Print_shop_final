@@ -4,6 +4,7 @@ import com.printflow.domain.enums.OrderStatus;
 import com.printflow.dto.response.OrderStatusHistoryResponse;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderStatusService {
 
@@ -16,4 +17,7 @@ public interface OrderStatusService {
 
     // สถานะถัดไปที่เปลี่ยนได้จากสถานะปัจจุบัน (ตามกฎของ State pattern)
     List<OrderStatus> getAllowedNextStatuses(OrderStatus current);
+
+    // ขั้นถัดไปแบบเดินหน้า (ไม่นับการยกเลิก) ใช้กับปุ่มเลื่อนสถานะหลาย order พร้อมกัน
+    Optional<OrderStatus> getNextStatus(OrderStatus current);
 }
