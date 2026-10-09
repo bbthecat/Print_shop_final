@@ -1,84 +1,88 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('จัดการคำสั่งซื้อ')}"></head>
+<head th:replace="~{fragments/layout :: head('คิวงาน')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <main class="container">
-    <h1>จัดการคำสั่งซื้อ</h1>
+    <h1>คิวงาน</h1>
 
     <div th:replace="~{fragments/layout :: flash}"></div>
 
-    <form th:action="@{/staff/orders}" method="get" class="inline-controls">
-        <label for="statusFilter">กรองตามสถานะ:</label>
-        <select id="statusFilter" name="status">
-            <option value="">ทุกสถานะ</option>
-            <option th:each="s : ${statuses}"
-                    th:value="${s}"
-                    th:text="${s.label}"
-                    th:selected="${s == selectedStatus}">รอร้านยืนยัน</option>
-        </select>
-        <button type="submit" class="btn btn-small">กรอง</button>
-    </form>
+    <!-- แท็บกรองตามสถานะ พร้อมจำนวนงาน -->
+    <nav class="tabs" aria-label="กรองตามสถานะ">
+        <a th:href="@{/staff/orders}" th:classappend="${selectedStatus == null} ? 'active'"
+           th:attr="aria-current=${selectedStatus == null} ? 'page' : null"
+           th:text="'ทั้งหมด ' + ${totalCount}">ทั้งหมด 0</a>
+        <a th:each="s : ${statuses}"
+           th:href="@{/staff/orders(status=${s})}"
+           th:classappend="${s == selectedStatus} ? 'active'"
+           th:attr="aria-current=${s == selectedStatus} ? 'page' : null"
+           th:text="${s.label} + ' ' + ${statusCounts.get(s)}">รอร้านยืนยัน 0</a>
+    </nav>
 
     <form id="advanceForm" th:action="@{/staff/orders/advance}" method="post"
           onsubmit="return confirm('เลื่อนคำสั่งซื้อที่เลือกไปสถานะถัดไปใช่ไหม?')">
         <input type="hidden" name="status" th:value="${selectedStatus}" th:if="${selectedStatus != null}">
         <input type="hidden" name="page" th:value="${orders.number}">
-        <div class="inline-controls" style="margin: 12px 0;">
-            <button type="submit" id="advanceButton" class="btn btn-small" disabled>
-                เลื่อนไปสถานะถัดไป (<span id="selectedCount">0</span> รายการ)
+        <div class="bulk-bar">
+            <button type="submit" id="advanceButton" class="btn" disabled>
+                <span><span th:text="${selectedStatus != null and selectedStatus.name() == 'PENDING'} ? 'ยืนยันรับงานที่เลือก' : 'เลื่อนไปสถานะถัดไป'">เลื่อนไปสถานะถัดไป</span>
+                    (<span id="selectedCount">0</span> รายการ)</span>
+                <span class="arrow">→</span>
             </button>
-            <small class="muted">ติ๊กเลือกได้หลายรายการ แต่ละรายการจะไปขั้นถัดไปของตัวเอง (ยกเลิกต้องทำทีละรายการในหน้ารายละเอียด)</small>
+            <small class="muted">ติ๊กได้หลายงาน แต่ละงานไปขั้นถัดไปของตัวเอง · ยกเลิกต้องทำทีละงานในหน้ารายละเอียด</small>
         </div>
     </form>
 
-    <section class="card table-scroll">
-        <table>
+    <div class="table-scroll">
+        <table class="queue" style="min-width: 860px;">
             <thead>
             <tr>
-                <th><input type="checkbox" id="selectAll" aria-label="เลือกทั้งหมด" form="advanceForm"></th>
-                <th>เลขที่</th>
+                <th style="width: 36px;"><input type="checkbox" id="selectAll" aria-label="เลือกทั้งหมด" form="advanceForm"></th>
+                <th>งาน</th>
                 <th>ลูกค้า</th>
                 <th>สถานะ</th>
-                <th>ยอดรวม (บาท)</th>
-                <th>วันที่สั่ง</th>
                 <th>ขั้นถัดไป</th>
-                <th></th>
+                <th style="text-align: right;">ยอด (บาท)</th>
+                <th>เข้ามา</th>
             </tr>
             </thead>
             <tbody>
-            <tr th:each="order : ${orders.content}" th:with="next=${nextStatusById.get(order.id())}">
+            <tr th:each="order : ${orders.content}" th:with="next=${nextStatusById.get(order.id())}"
+                th:classappend="${next == null} ? 'finished'">
                 <td>
                     <input type="checkbox" name="orderIds" class="order-check" form="advanceForm"
                            th:value="${order.id()}" th:disabled="${next == null}"
                            th:aria-label="'เลือก ' + ${order.orderNumber()}">
                 </td>
-                <td th:text="${order.orderNumber()}">ORD-001</td>
+                <td>
+                    <a class="job" th:href="@{/staff/orders/{id}(id=${order.id()})}"
+                       th:with="first=${order.items().isEmpty()} ? null : ${order.items()[0]}"
+                       th:text="${first == null} ? 'ดูรายละเอียด' : ${first.serviceName()} + ' · ' + ${first.pageCount()} + ' หน้า × ' + ${first.quantity()}">Document Color (A4) · 40 หน้า × 2</a>
+                    <span class="job-no" th:text="${order.orderNumber()}">ORD-001</span>
+                </td>
                 <td th:text="${order.customerName()}">customer01</td>
                 <td><span class="badge" th:classappend="'status-' + ${order.status().name().toLowerCase()}"
                           th:text="${order.status().label}">รอร้านยืนยัน</span></td>
-                <td th:text="${#numbers.formatDecimal(order.totalPrice(), 1, 'COMMA', 2, 'POINT')}">0.00</td>
-                <td th:text="${#temporals.format(order.createdAt(), 'dd/MM/yyyy HH:mm')}">-</td>
                 <td th:text="${next != null} ? '→ ' + ${next.label} : '-'" class="muted">→ ร้านรับงานแล้ว</td>
-                <td>
-                    <a class="btn btn-small" th:href="@{/staff/orders/{id}(id=${order.id()})}">ดูรายละเอียด</a>
-                </td>
+                <td style="text-align: right;" th:text="${#numbers.formatDecimal(order.totalPrice(), 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                <td class="muted" th:text="${#temporals.format(order.createdAt(), 'dd/MM HH:mm')}">-</td>
             </tr>
             <tr th:if="${orders.isEmpty()}">
-                <td colspan="8" class="text-center muted">ไม่มีคำสั่งซื้อ</td>
+                <td colspan="7" class="text-center muted" style="padding: 32px 0;">ไม่มีงานในคิวนี้</td>
             </tr>
             </tbody>
         </table>
-    </section>
-
-    <div class="pagination" th:if="${orders.totalPages > 1}">
-        <a th:if="${!orders.first}"
-           th:href="@{/staff/orders(page=${orders.number - 1}, status=${selectedStatus})}">ก่อนหน้า</a>
-        <span th:text="${orders.number + 1} + ' / ' + ${orders.totalPages}">1 / 1</span>
-        <a th:if="${!orders.last}"
-           th:href="@{/staff/orders(page=${orders.number + 1}, status=${selectedStatus})}">ถัดไป</a>
     </div>
+
+    <nav class="pagination" th:if="${orders.totalPages > 1}" aria-label="เปลี่ยนหน้า">
+        <a th:if="${!orders.first}"
+           th:href="@{/staff/orders(page=${orders.number - 1}, status=${selectedStatus})}">← หน้าก่อน</a>
+        <span th:text="'หน้า ' + ${orders.number + 1} + ' จาก ' + ${orders.totalPages}">หน้า 1 จาก 1</span>
+        <a th:if="${!orders.last}"
+           th:href="@{/staff/orders(page=${orders.number + 1}, status=${selectedStatus})}">หน้าถัดไป →</a>
+    </nav>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
