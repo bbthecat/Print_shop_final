@@ -6,6 +6,7 @@ import com.printflow.exception.InvalidStateTransitionException;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.repository.OrderRepository;
 import com.printflow.repository.OrderStatusHistoryRepository;
+import com.printflow.repository.UserRepository;
 import com.printflow.service.event.OrderStatusChangedEvent;
 import com.printflow.service.state.OrderStateResolver;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,8 +18,10 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,6 +41,9 @@ class OrderStatusServiceTest {
     @Mock
     private OrderStatusHistoryRepository historyRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
     @Captor
     private ArgumentCaptor<OrderStatusChangedEvent> eventCaptor;
 
@@ -49,7 +55,8 @@ class OrderStatusServiceTest {
                 orderRepository,
                 historyRepository,
                 new OrderStateResolver(),
-                eventPublisher
+                eventPublisher,
+                userRepository
         );
     }
 
@@ -107,5 +114,41 @@ class OrderStatusServiceTest {
         assertThrows(
                 ResourceNotFoundException.class,
                 () -> service.changeStatus(99L, OrderStatus.CONFIRMED, 9L));
+    }
+
+    @Test
+    @DisplayName("ลูกค้ายกเลิก order PENDING ของตัวเองได้")
+    void customerCancelsOwnPendingOrder() {
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(orderWith(OrderStatus.PENDING)));
+
+        assertEquals(OrderStatus.CANCELLED, service.cancelByCustomer(1L, 7L));
+    }
+
+    @Test
+    @DisplayName("ลูกค้ายกเลิก order ของคนอื่นไม่ได้")
+    void customerCannotCancelOthersOrder() {
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(orderWith(OrderStatus.PENDING)));
+
+        assertThrows(AccessDeniedException.class, () -> service.cancelByCustomer(1L, 8L));
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("ร้านรับงานแล้ว ลูกค้ายกเลิกเองไม่ได้")
+    void customerCannotCancelConfirmedOrder() {
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(orderWith(OrderStatus.CONFIRMED)));
+
+        assertThrows(InvalidStateTransitionException.class, () -> service.cancelByCustomer(1L, 7L));
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("สถานะถัดไปที่เลือกได้มาจากกฎของ State")
+    void allowedNextStatusesFollowStateRules() {
+        assertEquals(List.of(OrderStatus.CONFIRMED, OrderStatus.CANCELLED),
+                service.getAllowedNextStatuses(OrderStatus.PENDING));
+        assertEquals(List.of(OrderStatus.COMPLETED),
+                service.getAllowedNextStatuses(OrderStatus.READY));
+        assertEquals(List.of(), service.getAllowedNextStatuses(OrderStatus.COMPLETED));
     }
 }
