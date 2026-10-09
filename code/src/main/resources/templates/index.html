@@ -17,6 +17,21 @@
             ยินดีต้อนรับ <strong sec:authentication="name">username</strong>
         </p>
     </section>
+
+    <!-- ทางลัดตาม role -->
+    <div class="stats" sec:authorize="hasRole('CUSTOMER')">
+        <a class="card" th:href="@{/orders/create}"><strong>สั่งพิมพ์งาน</strong><p class="muted">เลือกบริการ จำนวนหน้า และบริการเสริม</p></a>
+        <a class="card" th:href="@{/orders}"><strong>คำสั่งซื้อของฉัน</strong><p class="muted">ดูประวัติและติดตามสถานะงาน</p></a>
+        <a class="card" th:href="@{/notifications}"><strong>แจ้งเตือน</strong><p class="muted">อัปเดตสถานะงานจากร้าน</p></a>
+        <a class="card" th:href="@{/profile}"><strong>ข้อมูลส่วนตัว</strong><p class="muted">แก้ไขชื่อ อีเมล เบอร์โทร</p></a>
+    </div>
+
+    <div class="stats" sec:authorize="hasAnyRole('STAFF','ADMIN')">
+        <a class="card" th:href="@{/staff/dashboard}"><strong>แดชบอร์ด</strong><p class="muted">ภาพรวมงานที่ต้องทำ</p></a>
+        <a class="card" th:href="@{/staff/orders}"><strong>จัดการงาน</strong><p class="muted">ยืนยัน เปลี่ยนสถานะงานพิมพ์</p></a>
+        <a class="card" th:href="@{/staff/payments}"><strong>การชำระเงิน</strong><p class="muted">บันทึกการรับชำระ</p></a>
+        <a class="card" sec:authorize="hasRole('ADMIN')" th:href="@{/admin/reports}"><strong>รายงาน</strong><p class="muted">ยอดขายและบริการยอดนิยม</p></a>
+    </div>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
