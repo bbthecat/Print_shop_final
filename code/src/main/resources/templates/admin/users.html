@@ -90,7 +90,8 @@
             <tr th:each="u : ${users.content}">
                 <td th:text="${u.id}">1</td>
                 <td th:text="${u.username}">somchai</td>
-                <td th:text="${u.firstName} + ' ' + ${u.lastName}">Somchai Jaidee</td>
+                <td th:with="fullName=${#strings.trim((u.firstName ?: '') + ' ' + (u.lastName ?: ''))}"
+                    th:text="${fullName.isEmpty()} ? '-' : ${fullName}">Somchai Jaidee</td>
                 <td th:text="${u.email}">somchai@example.com</td>
                 <td>
                     <form th:action="@{/admin/users/{id}/role(id=${u.id})}" method="post" class="inline-controls">

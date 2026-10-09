@@ -5,17 +5,17 @@
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <main class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1 style="margin: 0;">จัดการโปรโมชัน (Admin)</h1>
+    <div class="page-header">
         <div>
-            <a th:href="@{/admin/services}" class="btn btn-secondary">← จัดการบริการงานพิมพ์</a>
+            <h1>โปรโมชัน</h1>
+            <p class="lead">ลูกค้าแต่ละคนใช้แต่ละโค้ดได้ 1 ครั้ง โค้ดที่มีคนใช้แล้วลบไม่ได้ ให้ปิดใช้งานแทน</p>
         </div>
     </div>
 
     <div th:replace="~{fragments/layout :: flash}"></div>
 
     <!-- ฟอร์มสร้างโปรโมชันใหม่ -->
-    <details class="card" th:open="${openForm}" style="margin-bottom: 30px;">
+    <details class="card" th:open="${openForm}">
         <summary><strong>+ เพิ่มโค้ดโปรโมชันใหม่</strong></summary>
         <form th:action="@{/admin/promotions}" th:object="${form}" method="post" style="margin-top: 16px;">
             <div class="alert alert-error" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
@@ -79,12 +79,13 @@
 
     <!-- ตารางแสดงรายการโปรโมชันปัจจุบัน -->
     <section>
-        <h2 style="margin-bottom: 12px;">รายการโปรโมชันที่เปิดใช้งาน</h2>
+        <h2>รายการโปรโมชัน</h2>
         <div th:if="${#lists.isEmpty(promotions)}" class="card muted" style="text-align: center; padding: 24px;">
             ยังไม่มีโปรโมชันที่เปิดใช้งานอยู่ในระบบ
         </div>
 
-        <table th:if="${not #lists.isEmpty(promotions)}" class="table">
+        <div th:if="${not #lists.isEmpty(promotions)}" class="card flush">
+        <table class="table" style="min-width: 980px;">
             <thead>
             <tr>
                 <th>รหัสโปรโมชัน</th>
@@ -94,7 +95,7 @@
                 <th>ยอดสั่งซื้อขั้นต่ำ</th>
                 <th>ระยะเวลาใช้งาน</th>
                 <th>สถานะ</th>
-                <th>จัดการ</th>
+                <th class="num">จัดการ</th>
             </tr>
             </thead>
             <tbody>
@@ -122,6 +123,7 @@
                     <span th:unless="${promo.active}" class="badge badge-inactive">ปิดใช้งาน</span>
                 </td>
                 <td>
+                    <div class="actions">
                     <a class="btn btn-small" th:href="@{/admin/promotions/{id}/edit(id=${promo.id})}">แก้ไข</a>
                     <form th:if="${promo.active}" th:action="@{/admin/promotions/{id}/deactivate(id=${promo.id})}" method="post" style="display: inline;">
                         <button type="submit" class="btn btn-danger btn-small"
@@ -138,10 +140,12 @@
                             ลบ
                         </button>
                     </form>
+                    </div>
                 </td>
             </tr>
             </tbody>
         </table>
+        </div>
     </section>
 </main>
 
