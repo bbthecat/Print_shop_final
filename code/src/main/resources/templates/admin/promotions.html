@@ -132,6 +132,12 @@
                     <form th:unless="${promo.active}" th:action="@{/admin/promotions/{id}/activate(id=${promo.id})}" method="post" style="display: inline;">
                         <button type="submit" class="btn btn-small">เปิดใช้งาน</button>
                     </form>
+                    <form th:action="@{/admin/promotions/{id}/delete(id=${promo.id})}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-danger btn-small"
+                                onclick="return confirm('ยืนยันที่จะลบโปรโมชันนี้? (ลบได้เฉพาะโค้ดที่ยังไม่มีคนใช้)');">
+                            ลบ
+                        </button>
+                    </form>
                 </td>
             </tr>
             </tbody>
