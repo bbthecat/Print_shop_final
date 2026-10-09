@@ -7,48 +7,112 @@
 
 <main class="container">
     <section class="hero">
-        <span class="pill">สั่งออนไลน์ มารับที่ร้าน</span>
-        <h1>พิมพ์งานส่งได้ทันเวลา <span class="lit">ไม่ต้องยืนรอคิวหน้าร้าน</span></h1>
-        <p>เลือกไฟล์ ระบบนับหน้าและคิดราคาให้ทันที แล้วติดตามได้ว่างานพิมพ์ถึงขั้นไหน</p>
-        <div class="inline-controls">
-            <th:block sec:authorize="isAnonymous()">
-                <a class="btn btn-large" th:href="@{/register}">สมัครแล้วสั่งพิมพ์</a>
-                <a class="btn btn-secondary btn-large" th:href="@{/login}">เข้าสู่ระบบ</a>
-            </th:block>
-            <th:block sec:authorize="hasRole('CUSTOMER')">
-                <a class="btn btn-large" th:href="@{/orders/create}">สั่งพิมพ์งาน</a>
-                <a class="btn btn-secondary btn-large" th:href="@{/orders}">งานของฉัน</a>
-            </th:block>
-            <th:block sec:authorize="hasAnyRole('STAFF','ADMIN')">
-                <a class="btn btn-large" th:href="@{/staff/orders}">ดูคิวงาน</a>
-                <a class="btn btn-secondary btn-large" th:href="@{/staff/dashboard}">ภาพรวมวันนี้</a>
-            </th:block>
+        <div class="hero-copy">
+            <span class="pill">สั่งออนไลน์ มารับที่ร้าน</span>
+            <h1>พิมพ์งานส่งทันเวลา<br>ไม่ต้องยืนรอหน้าร้าน</h1>
+            <p>เลือกไฟล์ ระบบนับหน้าและคิดราคาให้ทันที ร้านแจ้งเตือนทุกครั้งที่งานขยับ พร้อมเมื่อไหร่ค่อยมารับ</p>
+            <div class="inline-controls">
+                <th:block sec:authorize="isAnonymous()">
+                    <a class="btn btn-large" th:href="@{/register}">สมัครแล้วสั่งพิมพ์</a>
+                    <a class="btn btn-secondary btn-large" th:href="@{/login}">เข้าสู่ระบบ</a>
+                </th:block>
+                <th:block sec:authorize="hasRole('CUSTOMER')">
+                    <a class="btn btn-large" th:href="@{/orders/create}">สั่งพิมพ์งาน</a>
+                    <a class="btn btn-secondary btn-large" th:href="@{/orders}">งานของฉัน</a>
+                </th:block>
+                <th:block sec:authorize="hasAnyRole('STAFF','ADMIN')">
+                    <a class="btn btn-large" th:href="@{/staff/orders}">ดูคิวงาน</a>
+                    <a class="btn btn-secondary btn-large" th:href="@{/staff/dashboard}">ภาพรวมวันนี้</a>
+                </th:block>
+            </div>
+            <div class="facts">
+                <div th:if="${services != null}"><strong th:text="${services.size()} + ' แบบ'">3 แบบ</strong><span>ขาวดำ สี รูปถ่าย</span></div>
+                <div th:if="${addons != null}"><strong th:text="${addons.size()} + ' งานเก็บเล่ม'">4 งานเก็บเล่ม</strong><span>เย็บ เข้าเล่ม เคลือบ</span></div>
+                <div><strong>นับหน้า PDF</strong><span>อัตโนมัติตอนเลือกไฟล์</span></div>
+            </div>
+        </div>
+
+        <!-- ภาพประกอบ: เครื่องพิมพ์ค่อย ๆ พ่นใบสั่งงานออกมา -->
+        <div class="hero-art" aria-hidden="true">
+            <div class="printer">
+                <div class="printer-body">
+                    <div>
+                        <span class="printer-name">PrintFlow</span>
+                        <span class="printer-inks"><i></i><i></i><i></i><i></i></span>
+                    </div>
+                    <span class="printer-led"></span>
+                    <span class="printer-slot"></span>
+                </div>
+                <div class="printer-feed">
+                    <div class="printer-paper">
+                        <div class="slip-head">
+                            <div><span class="slip-title">ใบสั่งงาน</span><div class="slip-note">ตัวอย่างการคิดราคา</div></div>
+                            <svg class="reg-mark" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="17" cy="17" r="9"></circle><circle cx="17" cy="17" r="4"></circle><path d="M17 1v32M1 17h32"></path></svg>
+                        </div>
+                        <div class="slip-lines">
+                            <div class="slip-line"><span>เอกสารสี A4 · 40 หน้า × 2</span><span class="leader"></span><span>400.00</span></div>
+                            <div class="slip-line"><span>เย็บมุม × 2</span><span class="leader"></span><span>4.00</span></div>
+                            <div class="slip-line discount"><span>ส่วนลด 10%</span><span class="leader"></span><span>−40.40</span></div>
+                        </div>
+                        <div class="slip-total">
+                            <span style="font-weight: 600;">ยอดสุทธิ</span>
+                            <span><span class="amount">363.60</span> <span class="unit">บาท</span></span>
+                        </div>
+                        <div class="color-bar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                    </div>
+                </div>
+                <div class="printer-tray"></div>
+            </div>
         </div>
     </section>
 
-    <h2 class="section-title">สั่งพิมพ์ใน 3 ขั้น</h2>
+    <h2 class="section-title">สั่งพิมพ์ใน 3 ขั้น <small>ไม่ต้องส่งไฟล์ทางแชต ไม่ต้องรอร้านตอบราคา</small></h2>
     <ol class="steps">
-        <li><strong>เลือกบริการและไฟล์</strong><span class="muted">ขาวดำ สี หรือรูปถ่าย ระบบนับหน้า PDF ให้เอง</span></li>
-        <li><strong>ดูราคาแล้วส่งงาน</strong><span class="muted">ราคาขึ้นทันทีตามจำนวนหน้า ชุด งานเก็บเล่ม และโค้ดส่วนลด</span></li>
+        <li><strong>เลือกบริการและไฟล์</strong><span class="muted">ขาวดำ สี หรือรูปถ่าย เลือกไฟล์ PDF แล้วระบบนับหน้าให้เอง</span></li>
+        <li><strong>ดูราคาแล้วส่งงาน</strong><span class="muted">ราคาขึ้นทันทีตามจำนวนหน้า ชุด และงานเก็บเล่ม ใส่โค้ดส่วนลดได้</span></li>
         <li><strong>มารับและจ่ายที่ร้าน</strong><span class="muted">มีแจ้งเตือนเมื่อร้านรับงาน กำลังพิมพ์ และงานพร้อมรับ</span></li>
     </ol>
 
-    <th:block th:if="${services != null and !services.isEmpty()}">
-        <h2 class="section-title">ราคาพิมพ์</h2>
-        <div class="price-board">
-            <div class="price-row" th:each="svc : ${services}">
-                <span th:text="${svc.name}">Document B&amp;W (A4)</span>
-                <span class="leader"></span>
-                <span th:text="${#numbers.formatDecimal(svc.basePrice, 1, 'COMMA', 2, 'POINT')} + (${svc.pricingType.name() == 'PHOTO'} ? ' บาท / แผ่น' : ' บาท / หน้า')">1.50 บาท / หน้า</span>
-            </div>
-            <div class="price-row" th:each="addon : ${addons}">
-                <span class="muted" th:text="${addon.name}">Corner Staple</span>
-                <span class="leader"></span>
-                <span class="muted" th:text="'+' + ${#numbers.formatDecimal(addon.price, 1, 'COMMA', 2, 'POINT')} + ' บาท / ชุด'">+2.00 บาท / ชุด</span>
-            </div>
+    <h2 class="section-title">คำถามที่พบบ่อย <small><a th:href="@{/services}">ดูราคาและโค้ดส่วนลด</a></small></h2>
+    <div class="faq">
+        <details open>
+            <summary>ส่งไฟล์แบบไหนได้บ้าง</summary>
+            <p>PDF, JPG และ PNG ถ้าเป็น PDF ระบบนับหน้าให้เองตอนเลือกไฟล์ ไฟล์จะไม่ถูกส่งขึ้นระบบ ให้แนบลิงก์ เช่น Google Drive หรือนำไฟล์มาที่ร้าน</p>
+        </details>
+        <details>
+            <summary>จ่ายเงินตอนไหน</summary>
+            <p>จ่ายที่ร้านตอนมารับงาน ด้วยเงินสด โอนเงิน หรือ QR พร้อมเพย์ ไม่ต้องจ่ายล่วงหน้า</p>
+        </details>
+        <details>
+            <summary>ยกเลิกงานได้ถึงเมื่อไหร่</summary>
+            <p>ยกเลิกเองได้ในหน้ารายละเอียดงาน จนกว่าร้านจะกดรับงาน หลังจากนั้นต้องติดต่อร้าน</p>
+        </details>
+        <details>
+            <summary>โค้ดส่วนลดใช้ได้กี่ครั้ง</summary>
+            <p>แต่ละโค้ดใช้ได้คนละ 1 ครั้ง มีหลายโค้ดก็ใช้ได้ทุกโค้ด ถ้างานที่ใช้โค้ดถูกยกเลิก จะได้สิทธิ์โค้ดนั้นคืน</p>
+        </details>
+        <details>
+            <summary>พิมพ์สีเยอะ ๆ มีส่วนลดไหม</summary>
+            <p>พิมพ์สีเกิน 50 หน้าต่อชุด ลดค่าพิมพ์ให้ 10% อัตโนมัติ และยังใช้โค้ดส่วนลดร่วมได้</p>
+        </details>
+        <details>
+            <summary>จะรู้ได้ยังไงว่างานเสร็จแล้ว</summary>
+            <p>มีแจ้งเตือนในเว็บทุกครั้งที่ร้านเปลี่ยนสถานะ เมื่อขึ้นว่า "พร้อมรับงาน" มารับได้เลย</p>
+        </details>
+    </div>
+
+    <section class="ink-band">
+        <div>
+            <h2>ดูสีก็รู้ว่างานถึงไหน</h2>
+            <p>สีหมึกพิมพ์ 4 สีคือสีประจำสถานะงาน ใช้เหมือนกันทั้งหน้าลูกค้าและหน้าพนักงาน</p>
         </div>
-        <p class="text-center muted" style="margin-top: 14px;"><a th:href="@{/services}">ดูรายละเอียดบริการและโปรโมชัน</a></p>
-    </th:block>
+        <div class="ink-swatches">
+            <div style="--c: var(--yellow);"><strong>รอร้านยืนยัน</strong><small>ส่งงานแล้ว</small></div>
+            <div style="--c: var(--cyan);"><strong>ร้านรับงานแล้ว</strong><small>เข้าคิวพิมพ์</small></div>
+            <div style="--c: var(--magenta);"><strong>กำลังพิมพ์</strong><small>อยู่ในเครื่อง</small></div>
+            <div style="--c: #F4F5F2;"><strong>พร้อมรับงาน</strong><small>มารับได้เลย</small></div>
+        </div>
+    </section>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

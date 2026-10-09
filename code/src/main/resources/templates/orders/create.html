@@ -10,8 +10,8 @@
 
     <form th:action="@{/orders/create}" th:object="${form}" method="post" class="two-col" id="orderForm">
         <div>
-            <h1 style="font-size: 2.6rem;">สั่งพิมพ์งานใหม่</h1>
-            <p class="muted" style="margin: 0 0 36px; max-width: 520px;">กรอกสามข้อ ราคาด้านขวาเปลี่ยนตามทันที จ่ายเงินที่ร้านตอนมารับงาน</p>
+            <h1>สั่งพิมพ์งานใหม่</h1>
+            <p class="muted" style="margin: 0 0 30px; max-width: 520px;">กรอก 3 ขั้น ราคาด้านขวาเปลี่ยนตามทันที จ่ายเงินที่ร้านตอนมารับงาน</p>
 
             <!-- 1. บริการพิมพ์ -->
             <section class="step-section">
@@ -23,7 +23,7 @@
                             <span th:switch="${svc.pricingType.name()}" aria-hidden="true">
                                 <span th:case="'BLACK_WHITE'" class="swatch swatch-bw"></span>
                                 <span th:case="'COLOR'" class="swatch swatch-color"><i></i><i></i><i></i><i></i></span>
-                                <svg th:case="*" class="swatch" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="30" height="24"></rect><path d="M3 25l9-8 7 6 5-4 9 7"></path><circle cx="25" cy="13" r="2.5"></circle></svg>
+                                <span th:case="*" class="swatch swatch-photo"></span>
                             </span>
                             <input type="radio" th:field="*{serviceId}" th:value="${svc.id}" required
                                    th:data-price="${svc.basePrice}" th:data-type="${svc.pricingType}" th:data-name="${svc.name}">
