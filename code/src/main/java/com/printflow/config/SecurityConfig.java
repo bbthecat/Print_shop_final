@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/payment").hasAnyRole(STAFF, ADMIN)
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/orders/*/payment").hasAnyRole(STAFF, ADMIN)
                         .requestMatchers("/api/v1/reports/**", "/api/v1/admin/**", "/admin/**").hasRole(ADMIN)
+                        .requestMatchers("/profile").hasRole("CUSTOMER")
                         .requestMatchers("/staff/**").hasAnyRole(STAFF, ADMIN)
                         .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
