@@ -90,6 +90,18 @@
                     </div>
                 </div>
 
+                <div th:if="${order.discountAmount != null and order.discountAmount.signum() > 0}"
+                     style="border-top: 2px dashed var(--border); padding-top: 14px; margin-top: 16px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>ยอดก่อนส่วนลด:</span>
+                        <span th:text="${#numbers.formatDecimal(order.subtotal(), 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; color: var(--success-text);">
+                        <span th:text="'ส่วนลด' + (${order.promotionCode} != null ? ' (' + ${order.promotionCode} + ')' : '') + ':'">ส่วนลด:</span>
+                        <span th:text="'-' + ${#numbers.formatDecimal(order.discountAmount, 1, 'COMMA', 2, 'POINT')} + ' บาท'">-0.00 บาท</span>
+                    </div>
+                </div>
+
                 <div style="border-top: 2px dashed var(--border); padding-top: 14px; margin-top: 16px; display: flex; justify-content: space-between; align-items: baseline;">
                     <span style="font-size: 1.1rem; font-weight: 600;">ยอดรวมสุทธิ:</span>
                     <span style="font-size: 1.4rem; font-weight: bold; color: var(--primary);"

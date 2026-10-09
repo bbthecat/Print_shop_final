@@ -107,9 +107,12 @@
                 <div th:if="${promotions != null and !promotions.isEmpty()}">
                     <div th:each="promo : ${promotions}" style="margin-bottom: 12px; padding: 10px; background: var(--bg); border-radius: 6px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong style="color: var(--primary); cursor: pointer;"
-                                    th:onclick="'document.getElementById(\'promotionCode\').value = \'' + ${promo.code} + '\''"
-                                    th:text="${promo.code}">CODE</strong>
+                            <button type="button"
+                                    style="background: none; border: none; padding: 0; font: inherit; font-weight: 700; color: var(--primary); cursor: pointer;"
+                                    th:data-code="${promo.code}"
+                                    onclick="document.getElementById('promotionCode').value = this.dataset.code"
+                                    title="คลิกเพื่อใช้โค้ดนี้"
+                                    th:text="${promo.code}">CODE</button>
                             <span class="badge badge-active"
                                   th:text="${promo.discountType.name() == 'PERCENTAGE' ? 'ลด ' + promo.discountValue + '%' : 'ลด ' + promo.discountValue + ' บาท'}">
                             </span>

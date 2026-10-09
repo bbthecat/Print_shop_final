@@ -51,6 +51,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 /**
@@ -188,6 +189,28 @@ class OrderCommandServiceTest {
         PrintItem item = savedItem();
         assertEquals(0, new BigDecimal("84.00").compareTo(item.getSubtotal()));
         assertEquals(0, new BigDecimal("42.00").compareTo(item.getUnitPrice()));
+    }
+
+    @Test
+    void createOrder_duplicateAddonIds_chargesAddonOnce() {
+        givenBlackWhiteService();
+        givenAddon(1L, "2.00");
+        givenRepositoriesSave();
+
+        orderCommandService.createOrder(7L, new OrderCreateRequest(
+                List.of(new OrderItemRequest(1L, 20, 1, List.of(1L, 1L))), null, null, null));
+
+        // ส่ง id เย็บมุมซ้ำมา ต้องคิดแค่ครั้งเดียว: 30.00 + 2.00 = 32.00
+        assertEquals(0, new BigDecimal("32.00").compareTo(savedItem().getSubtotal()));
+        verify(printItemAddonRepository, times(1)).save(any());
+    }
+
+    @Test
+    void createOrder_withoutItems_throwsValidationException() {
+        OrderCreateRequest request = new OrderCreateRequest(List.of(), null, null, null);
+
+        assertThrows(ValidationException.class, () -> orderCommandService.createOrder(7L, request));
+        verify(orderRepository, never()).save(any());
     }
 
     @Test
