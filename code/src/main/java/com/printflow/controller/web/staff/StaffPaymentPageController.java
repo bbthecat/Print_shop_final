@@ -1,6 +1,7 @@
 package com.printflow.controller.web.staff;
 
 import com.printflow.domain.enums.PaymentMethod;
+import com.printflow.exception.InvalidStateTransitionException;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.service.PaymentService;
 import org.springframework.data.domain.Pageable;
@@ -44,7 +45,7 @@ public class StaffPaymentPageController {
         try {
             paymentService.markAsPaid(orderId, method);
             redirect.addFlashAttribute("success", "บันทึกการชำระเงินแล้ว");
-        } catch (ResourceNotFoundException ex) {
+        } catch (ResourceNotFoundException | InvalidStateTransitionException ex) {
             redirect.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:/staff/payments";

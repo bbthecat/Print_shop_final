@@ -16,4 +16,14 @@ public class SecurityContextCurrentUserProvider implements CurrentUserProvider {
         }
         throw new AuthenticationCredentialsNotFoundException("No authenticated user");
     }
+
+    @Override
+    public boolean isStaffOrAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_STAFF") || a.getAuthority().equals("ROLE_ADMIN"));
+    }
 }

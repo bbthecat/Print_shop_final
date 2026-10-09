@@ -5,6 +5,7 @@ import com.printflow.domain.enums.OrderStatus;
 import com.printflow.dto.request.OrderCreateRequest;
 import com.printflow.dto.request.OrderItemRequest;
 import com.printflow.dto.response.OrderResponse;
+import com.printflow.security.CurrentUserProvider;
 import com.printflow.service.OrderCommandService;
 import com.printflow.service.OrderQueryService;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,6 +49,9 @@ class OrderControllerTest {
     @MockBean
     private OrderQueryService queryService;
 
+    @MockBean
+    private CurrentUserProvider currentUserProvider;
+
     @Test
     void shouldGetAllOrders() throws Exception {
         OrderResponse response = createOrderResponse();
@@ -66,28 +71,30 @@ class OrderControllerTest {
 
     @Test
     void shouldGetOrderById() throws Exception {
-        when(queryService.getById(1L))
+        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
+        when(queryService.getByIdForUser(1L, 1L, false))
                 .thenReturn(createOrderResponse());
 
         mockMvc.perform(get("/api/v1/orders/1"))
                 .andExpect(status().isOk());
 
-        verify(queryService).getById(1L);
+        verify(queryService).getByIdForUser(1L, 1L, false);
     }
 
     @Test
     void shouldCreateOrder() throws Exception {
         OrderCreateRequest request = new OrderCreateRequest(
-                1L,
                 List.of(new OrderItemRequest(
                         1L,
+                        20,
                         2,
                         List.of()
                 )),
                 null
         );
 
-        when(commandService.createOrder(any(OrderCreateRequest.class)))
+        when(currentUserProvider.getCurrentUserId()).thenReturn(7L);
+        when(commandService.createOrder(eq(7L), any(OrderCreateRequest.class)))
                 .thenReturn(createOrderResponse());
 
         mockMvc.perform(post("/api/v1/orders")
@@ -96,7 +103,8 @@ class OrderControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        verify(commandService).createOrder(any(OrderCreateRequest.class));
+        // เจ้าของ order ต้องเป็นคนที่ login อยู่ ไม่ใช่ค่าจาก body
+        verify(commandService).createOrder(eq(7L), any(OrderCreateRequest.class));
     }
 
     @Test
