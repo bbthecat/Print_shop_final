@@ -9,41 +9,48 @@
 
     <div th:replace="~{fragments/layout :: flash}"></div>
 
-    <table class="card">
-        <thead>
-        <tr>
-            <th>order id</th>
-            <th>ยอด</th>
-            <th>ช่องทาง</th>
-            <th>สถานะ</th>
-            <th>ชำระเมื่อ</th>
-            <th>บันทึกการชำระ</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="p : ${payments.content}">
-            <td th:text="${p.orderId}">1</td>
-            <td th:text="${p.amount}">0.00</td>
-            <td th:text="${p.paymentMethod} ?: '-'">-</td>
-            <td><span class="badge" th:text="${p.paymentStatus}">UNPAID</span></td>
-            <td th:text="${p.paidAt != null} ? ${#temporals.format(p.paidAt, 'dd/MM/yyyy HH:mm')} : '-'">-</td>
-            <td>
-                <form th:if="${p.paymentStatus.name() == 'UNPAID'}"
-                      th:action="@{/staff/payments/{id}/paid(id=${p.orderId})}"
-                      method="post" class="inline-controls">
-                    <select name="method">
-                        <option th:each="m : ${methods}" th:value="${m}" th:text="${m}">CASH</option>
-                    </select>
-                    <button type="submit" class="btn btn-small">ชำระแล้ว</button>
-                </form>
-                <span th:unless="${p.paymentStatus.name() == 'UNPAID'}" class="muted">-</span>
-            </td>
-        </tr>
-        <tr th:if="${payments.isEmpty()}">
-            <td colspan="6" class="text-center muted">ยังไม่มีรายการชำระเงิน</td>
-        </tr>
-        </tbody>
-    </table>
+    <section class="card table-scroll">
+        <table>
+            <thead>
+            <tr>
+                <th>คำสั่งซื้อ</th>
+                <th>สถานะงาน</th>
+                <th>ยอด (บาท)</th>
+                <th>ช่องทาง</th>
+                <th>การชำระ</th>
+                <th>ชำระเมื่อ</th>
+                <th>บันทึกการชำระ</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${payments.content}" th:with="o=${orders.get(p.orderId)}">
+                <td><a th:href="@{/staff/orders/{id}(id=${p.orderId})}" th:text="${o.orderNumber}">ORD-1</a></td>
+                <td><span class="badge" th:classappend="'status-' + ${o.status.name().toLowerCase()}"
+                          th:text="${o.status.label}">รอร้านยืนยัน</span></td>
+                <td th:text="${#numbers.formatDecimal(p.amount, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                <td th:text="${p.paymentMethod != null} ? ${p.paymentMethod.label} : '-'">-</td>
+                <td><span class="badge" th:classappend="${p.paymentStatus.name() == 'PAID'} ? 'badge-active' : ''"
+                          th:text="${p.paymentStatus.label}">ยังไม่ชำระ</span></td>
+                <td th:text="${p.paidAt != null} ? ${#temporals.format(p.paidAt, 'dd/MM/yyyy HH:mm')} : '-'">-</td>
+                <td>
+                    <form th:if="${p.paymentStatus.name() == 'UNPAID' and o.status.name() != 'CANCELLED'}"
+                          th:action="@{/staff/payments/{id}/paid(id=${p.orderId})}"
+                          method="post" class="inline-controls">
+                        <label class="sr-only" th:for="'method_' + ${p.id}">ช่องทางชำระเงิน</label>
+                        <select name="method" th:id="'method_' + ${p.id}">
+                            <option th:each="m : ${methods}" th:value="${m}" th:text="${m.label}">เงินสด</option>
+                        </select>
+                        <button type="submit" class="btn btn-small">ชำระแล้ว</button>
+                    </form>
+                    <span th:unless="${p.paymentStatus.name() == 'UNPAID' and o.status.name() != 'CANCELLED'}" class="muted">-</span>
+                </td>
+            </tr>
+            <tr th:if="${payments.isEmpty()}">
+                <td colspan="7" class="text-center muted">ยังไม่มีรายการชำระเงิน</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
 
     <div class="pagination" th:if="${payments.totalPages > 1}">
         <a th:if="${!payments.first}" th:href="@{/staff/payments(page=${payments.number - 1})}">ก่อนหน้า</a>

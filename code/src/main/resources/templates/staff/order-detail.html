@@ -10,69 +10,78 @@
     <div th:replace="~{fragments/layout :: flash}"></div>
 
     <div class="card">
-        <p>สถานะปัจจุบัน: <span class="badge" th:text="${order.status()}">PENDING</span></p>
-        <p>ลูกค้า (user id): <span th:text="${order.userId()}">1</span></p>
-        <p>ยอดรวม: <span th:text="${order.totalPrice()}">0.00</span> บาท</p>
+        <p>สถานะปัจจุบัน:
+            <span class="badge" th:classappend="'status-' + ${order.status().name().toLowerCase()}"
+                  th:text="${order.status().label}">รอร้านยืนยัน</span></p>
+        <p>ลูกค้า: <strong th:text="${order.customerName()}">customer01</strong></p>
+        <p>ยอดรวม: <strong th:text="${#numbers.formatDecimal(order.totalPrice(), 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</strong></p>
         <p>วันที่สั่ง: <span th:text="${#temporals.format(order.createdAt(), 'dd/MM/yyyy HH:mm')}">-</span></p>
     </div>
 
     <h2>รายการงานพิมพ์</h2>
-    <table class="card">
-        <thead>
-        <tr>
-            <th>บริการ</th>
-            <th>บริการเสริม</th>
-            <th>หน้า/ชุด</th>
-            <th>จำนวนชุด</th>
-            <th>ราคา/ชุด</th>
-            <th>รวม</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="item : ${order.items()}">
-            <td th:text="${item.serviceName()}">-</td>
-            <td th:text="${item.addonNames().isEmpty()} ? '-' : ${#strings.listJoin(item.addonNames(), ', ')}">-</td>
-            <td th:text="${item.pageCount()}">1</td>
-            <td th:text="${item.quantity()}">0</td>
-            <td th:text="${item.unitPrice()}">0.00</td>
-            <td th:text="${item.subtotal()}">0.00</td>
-        </tr>
-        <tr th:if="${order.items().isEmpty()}">
-            <td colspan="6" class="text-center muted">ไม่มีรายการ</td>
-        </tr>
-        </tbody>
-    </table>
+    <section class="card table-scroll">
+        <table>
+            <thead>
+            <tr>
+                <th>บริการ</th>
+                <th>บริการเสริม</th>
+                <th>หน้า/ชุด</th>
+                <th>จำนวนชุด</th>
+                <th>ราคา/ชุด (บาท)</th>
+                <th>รวม (บาท)</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="item : ${order.items()}">
+                <td th:text="${item.serviceName()}">-</td>
+                <td th:text="${item.addonNames().isEmpty()} ? '-' : ${#strings.listJoin(item.addonNames(), ', ')}">-</td>
+                <td th:text="${item.pageCount()}">1</td>
+                <td th:text="${item.quantity()}">0</td>
+                <td th:text="${#numbers.formatDecimal(item.unitPrice(), 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                <td th:text="${#numbers.formatDecimal(item.subtotal(), 1, 'COMMA', 2, 'POINT')}">0.00</td>
+            </tr>
+            <tr th:if="${order.items().isEmpty()}">
+                <td colspan="6" class="text-center muted">ไม่มีรายการ</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
 
     <h2>เปลี่ยนสถานะ</h2>
-    <form th:action="@{/staff/orders/{id}/status(id=${order.id()})}" method="post" class="inline-controls">
-        <select name="status">
-            <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}">CONFIRMED</option>
+    <form th:if="${!statuses.isEmpty()}" th:action="@{/staff/orders/{id}/status(id=${order.id()})}" method="post"
+          class="inline-controls">
+        <label for="status">เปลี่ยนเป็น</label>
+        <select id="status" name="status">
+            <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}">ร้านรับงานแล้ว</option>
         </select>
         <button type="submit" class="btn">บันทึก</button>
     </form>
+    <p th:if="${statuses.isEmpty()}" class="muted">คำสั่งซื้อนี้สิ้นสุดแล้ว เปลี่ยนสถานะต่อไม่ได้</p>
 
     <h2>ประวัติการเปลี่ยนสถานะ</h2>
-    <table class="card">
-        <thead>
-        <tr>
-            <th>จาก</th>
-            <th>เป็น</th>
-            <th>โดย (user id)</th>
-            <th>เมื่อ</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="h : ${histories}">
-            <td th:text="${h.oldStatus()}">-</td>
-            <td th:text="${h.newStatus()}">-</td>
-            <td th:text="${h.changedBy()}">-</td>
-            <td th:text="${#temporals.format(h.changedAt(), 'dd/MM/yyyy HH:mm')}">-</td>
-        </tr>
-        <tr th:if="${histories.isEmpty()}">
-            <td colspan="4" class="text-center muted">ยังไม่มีการเปลี่ยนสถานะ</td>
-        </tr>
-        </tbody>
-    </table>
+    <section class="card table-scroll">
+        <table>
+            <thead>
+            <tr>
+                <th>จาก</th>
+                <th>เป็น</th>
+                <th>โดย</th>
+                <th>เมื่อ</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="h : ${histories}">
+                <td th:text="${h.oldStatus() != null} ? ${h.oldStatus().label} : '-'">-</td>
+                <td th:text="${h.newStatus().label}">-</td>
+                <td th:text="${h.changedByName()}">-</td>
+                <td th:text="${#temporals.format(h.changedAt(), 'dd/MM/yyyy HH:mm')}">-</td>
+            </tr>
+            <tr th:if="${histories.isEmpty()}">
+                <td colspan="4" class="text-center muted">ยังไม่มีการเปลี่ยนสถานะ</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
 
     <a class="btn btn-secondary" th:href="@{/staff/orders}">กลับไปรายการ</a>
 </main>
