@@ -1,6 +1,7 @@
 package com.printflow.service.impl;
 
 import com.printflow.domain.entity.AddonService;
+import com.printflow.domain.entity.OrderFile;
 import com.printflow.domain.entity.OrderPromotion;
 import com.printflow.domain.entity.PrintItem;
 import com.printflow.domain.entity.PrintItemAddon;
@@ -14,6 +15,7 @@ import com.printflow.dto.response.OrderResponse;
 import com.printflow.exception.InvalidStateTransitionException;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.exception.ValidationException;
+import com.printflow.repository.OrderFileRepository;
 import com.printflow.repository.OrderPromotionRepository;
 import com.printflow.repository.OrderRepository;
 import com.printflow.repository.PrintItemAddonRepository;
@@ -33,8 +35,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -43,6 +48,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
     private final OrderRepository orderRepository;
     private final PrintItemRepository printItemRepository;
     private final PrintItemAddonRepository printItemAddonRepository;
+    private final OrderFileRepository orderFileRepository;
     private final OrderPromotionRepository orderPromotionRepository;
     private final ServiceCatalogQueryService serviceCatalogQueryService;
     private final PromotionService promotionService;
@@ -56,6 +62,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             OrderRepository orderRepository,
             PrintItemRepository printItemRepository,
             PrintItemAddonRepository printItemAddonRepository,
+            OrderFileRepository orderFileRepository,
             OrderPromotionRepository orderPromotionRepository,
             ServiceCatalogQueryService serviceCatalogQueryService,
             PromotionService promotionService,
@@ -68,6 +75,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         this.orderRepository = orderRepository;
         this.printItemRepository = printItemRepository;
         this.printItemAddonRepository = printItemAddonRepository;
+        this.orderFileRepository = orderFileRepository;
         this.orderPromotionRepository = orderPromotionRepository;
         this.serviceCatalogQueryService = serviceCatalogQueryService;
         this.promotionService = promotionService;
@@ -113,16 +121,23 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             ));
         }
 
+        // ไฟล์งาน (ถ้ามี) ส่งเข้า chain ให้ FileTypeValidationHandler ตรวจชนิดไฟล์
+        List<OrderFile> files = new ArrayList<>();
+        if (request.fileName() != null && !request.fileName().isBlank()) {
+            files.add(toOrderFile(order, request.fileName().trim(), request.fileUrl()));
+        }
+
         OrderValidationContext validationContext = new OrderValidationContext(
                 order,
                 itemsToValidate,
-                List.of(),
+                files,
                 promotionsToValidate
         );
 
         orderValidationChain.handle(validationContext);
 
         order = orderRepository.save(order);
+        orderFileRepository.saveAll(files);
 
         BigDecimal orderTotal = BigDecimal.ZERO;
 
@@ -230,8 +245,32 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         orderRepository.delete(order);
     }
 
+    // เลขคำสั่งซื้อ = วันเวลา + ตัวสุ่ม 4 ตัว (กันเลขซ้ำเมื่อสั่งพร้อมกันในมิลลิวินาทีเดียวกัน)
     private String generateOrderNumber() {
-        return "ORD-" + System.currentTimeMillis();
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHHmmss"));
+        String random = UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        return "ORD-" + time + "-" + random;
+    }
+
+    private OrderFile toOrderFile(PrintOrder order, String fileName, String fileUrl) {
+        String path = (fileUrl != null && !fileUrl.isBlank()) ? fileUrl.trim() : "นำไฟล์มาที่ร้าน";
+        return new OrderFile(order, fileName, path, fileTypeOf(fileName), null);
+    }
+
+    // เดาชนิดไฟล์จากนามสกุล (FileTypeValidationHandler จะตรวจว่ารองรับหรือไม่)
+    private String fileTypeOf(String fileName) {
+        String name = fileName.toLowerCase();
+        if (name.endsWith(".pdf")) {
+            return "application/pdf";
+        }
+        if (name.endsWith(".jpg") || name.endsWith(".jpeg")) {
+            return "image/jpeg";
+        }
+        if (name.endsWith(".png")) {
+            return "image/png";
+        }
+        int dot = name.lastIndexOf('.');
+        return dot >= 0 ? name.substring(dot + 1) : "unknown";
     }
 
     // ใช้ Strategy ส่วนลดของ P2 (PERCENTAGE / FIXED_AMOUNT) แทนการเขียน if/switch เอง

@@ -13,6 +13,7 @@ public record OrderResponse(
         String orderNumber,
 
         Long userId,
+        String customerName,
 
         OrderStatus status,
 

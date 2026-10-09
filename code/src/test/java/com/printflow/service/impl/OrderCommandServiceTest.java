@@ -14,6 +14,7 @@ import com.printflow.dto.request.OrderItemRequest;
 import com.printflow.exception.InvalidStateTransitionException;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.exception.ValidationException;
+import com.printflow.repository.OrderFileRepository;
 import com.printflow.repository.OrderPromotionRepository;
 import com.printflow.repository.OrderRepository;
 import com.printflow.repository.PrintItemAddonRepository;
@@ -69,6 +70,9 @@ class OrderCommandServiceTest {
     private PrintItemAddonRepository printItemAddonRepository;
 
     @Mock
+    private OrderFileRepository orderFileRepository;
+
+    @Mock
     private OrderPromotionRepository orderPromotionRepository;
 
     @Mock
@@ -99,6 +103,7 @@ class OrderCommandServiceTest {
                 orderRepository,
                 printItemRepository,
                 printItemAddonRepository,
+                orderFileRepository,
                 orderPromotionRepository,
                 serviceCatalogQueryService,
                 promotionService,
@@ -157,7 +162,7 @@ class OrderCommandServiceTest {
         when(orderRepository.save(any(PrintOrder.class))).thenAnswer(inv -> saved[0] = inv.getArgument(0));
 
         orderCommandService.createOrder(7L, new OrderCreateRequest(
-                List.of(new OrderItemRequest(1L, 20, 1, List.of(1L))), null));
+                List.of(new OrderItemRequest(1L, 20, 1, List.of(1L))), null, null, null));
 
         // 1.50 x 20 หน้า x 1 ชุด + เย็บมุม 2.00 x 1 ชุด = 32.00 (เดิมคิดผิดเป็น 70.00)
         PrintItem item = savedItem();
@@ -177,7 +182,7 @@ class OrderCommandServiceTest {
         givenRepositoriesSave();
 
         orderCommandService.createOrder(7L, new OrderCreateRequest(
-                List.of(new OrderItemRequest(1L, 10, 2, List.of(1L, 2L))), null));
+                List.of(new OrderItemRequest(1L, 10, 2, List.of(1L, 2L))), null, null, null));
 
         // 1.50 x 10 x 2 = 30.00 + (2 + 25) x 2 ชุด = 54.00 → 84.00, ราคาต่อชุด 42.00
         PrintItem item = savedItem();
@@ -193,7 +198,7 @@ class OrderCommandServiceTest {
                 .thenReturn(promotion(DiscountType.PERCENTAGE, "10", "0"));
 
         orderCommandService.createOrder(7L, new OrderCreateRequest(
-                List.of(new OrderItemRequest(1L, 100, 1, List.of())), "PROMO"));
+                List.of(new OrderItemRequest(1L, 100, 1, List.of())), "PROMO", null, null));
 
         // 1.50 x 100 = 150.00, ลด 10% = 15.00
         ArgumentCaptor<OrderPromotion> captor = ArgumentCaptor.forClass(OrderPromotion.class);
@@ -209,10 +214,26 @@ class OrderCommandServiceTest {
                 .thenReturn(promotion(DiscountType.FIXED_AMOUNT, "30", "200"));
 
         OrderCreateRequest request = new OrderCreateRequest(
-                List.of(new OrderItemRequest(1L, 20, 1, List.of())), "PROMO");
+                List.of(new OrderItemRequest(1L, 20, 1, List.of())), "PROMO", null, null);
 
         assertThrows(ValidationException.class, () -> orderCommandService.createOrder(7L, request));
         verify(orderPromotionRepository, never()).save(any());
+    }
+
+    @Test
+    void createOrder_withFileName_passesFileToValidationChainAndSavesIt() {
+        givenBlackWhiteService();
+        givenRepositoriesSave();
+
+        orderCommandService.createOrder(7L, new OrderCreateRequest(
+                List.of(new OrderItemRequest(1L, 1, 1, List.of())), null, "report.PDF", null));
+
+        // ชนิดไฟล์ถูกเดาจากนามสกุล แล้วส่งให้ FileTypeValidationHandler ตรวจใน chain
+        ArgumentCaptor<OrderValidationContext> context = ArgumentCaptor.forClass(OrderValidationContext.class);
+        verify(orderValidationChain).handle(context.capture());
+        assertEquals("application/pdf", context.getValue().getFiles().get(0).getFileType());
+        assertEquals("นำไฟล์มาที่ร้าน", context.getValue().getFiles().get(0).getFilePath());
+        verify(orderFileRepository).saveAll(any());
     }
 
     @Test
@@ -221,7 +242,7 @@ class OrderCommandServiceTest {
                 .when(orderValidationChain).handle(any(OrderValidationContext.class));
 
         OrderCreateRequest request = new OrderCreateRequest(
-                List.of(new OrderItemRequest(1L, 1, 0, List.of())), null);
+                List.of(new OrderItemRequest(1L, 1, 0, List.of())), null, null, null);
 
         assertThrows(ValidationException.class, () -> orderCommandService.createOrder(7L, request));
         verify(orderRepository, never()).save(any());

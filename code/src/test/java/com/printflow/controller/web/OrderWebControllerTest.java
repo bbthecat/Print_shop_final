@@ -4,9 +4,12 @@ import com.printflow.config.SecurityConfig;
 import com.printflow.domain.enums.OrderStatus;
 import com.printflow.dto.response.OrderItemResponse;
 import com.printflow.dto.response.OrderResponse;
+import com.printflow.exception.InvalidStateTransitionException;
+import com.printflow.exception.ValidationException;
 import com.printflow.security.CurrentUserProvider;
 import com.printflow.service.OrderCommandService;
 import com.printflow.service.OrderQueryService;
+import com.printflow.service.OrderStatusService;
 import com.printflow.service.PromotionService;
 import com.printflow.service.ServiceCatalogQueryService;
 import org.junit.jupiter.api.Test;
@@ -26,6 +29,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -54,13 +58,16 @@ class OrderWebControllerTest {
     @MockBean
     private CurrentUserProvider currentUserProvider;
 
+    @MockBean
+    private OrderStatusService orderStatusService;
+
     private OrderResponse sampleOrderResponse() {
         OrderItemResponse item = new OrderItemResponse(
                 1L, 1L, "Document B&W (A4)", 20, 2, BigDecimal.valueOf(5.00), BigDecimal.valueOf(10.00),
                 List.of(1L), List.of("Corner Staple")
         );
         return new OrderResponse(
-                10L, "ORD-12345", 1L, OrderStatus.PENDING,
+                10L, "ORD-12345", 1L, "customer01", OrderStatus.PENDING,
                 BigDecimal.valueOf(10.00), LocalDateTime.now(), List.of(item)
         );
     }
@@ -157,5 +164,52 @@ class OrderWebControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("orders/tracking"))
                 .andExpect(model().attributeExists("order"));
+    }
+
+    @Test
+    @WithMockUser
+    void cancelOrder_ownPendingOrder_redirectsWithSuccess() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
+
+        mockMvc.perform(post("/orders/10/cancel").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/orders/10"))
+                .andExpect(flash().attributeExists("success"));
+
+        verify(orderStatusService).cancelByCustomer(10L, 1L);
+    }
+
+    @Test
+    @WithMockUser
+    void cancelOrder_alreadyConfirmed_showsError() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
+        when(orderStatusService.cancelByCustomer(10L, 1L))
+                .thenThrow(new InvalidStateTransitionException("ยกเลิกได้เฉพาะคำสั่งที่ยังรอร้านยืนยัน (PENDING) เท่านั้น"));
+
+        mockMvc.perform(post("/orders/10/cancel").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attributeExists("error"));
+    }
+
+    @Test
+    @WithMockUser
+    void createOrder_serviceError_keepsInputOnForm() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
+        when(catalogQueryService.findAllActivePrintServices()).thenReturn(List.of());
+        when(catalogQueryService.findAllActiveAddonServices()).thenReturn(List.of());
+        when(promotionService.findAllActive()).thenReturn(List.of());
+        when(orderCommandService.createOrder(eq(1L), any()))
+                .thenThrow(new ValidationException("ยอดสั่งซื้อยังไม่ถึงขั้นต่ำ"));
+
+        mockMvc.perform(post("/orders/create")
+                        .with(csrf())
+                        .param("serviceId", "1")
+                        .param("pageCount", "20")
+                        .param("quantity", "1")
+                        .param("promotionCode", "SAVE30"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("orders/create"))
+                .andExpect(model().attribute("error", "ยอดสั่งซื้อยังไม่ถึงขั้นต่ำ"))
+                .andExpect(content().string(containsString("SAVE30")));
     }
 }

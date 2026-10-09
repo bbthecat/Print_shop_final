@@ -6,7 +6,7 @@
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <main class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div class="page-header">
         <div>
             <h1 style="margin: 0;">ติดตามสถานะงานพิมพ์</h1>
             <p class="muted" style="margin: 4px 0 0 0;" th:text="'คำสั่งซื้อ: ' + ${order.orderNumber}">ORD-12345</p>
@@ -25,7 +25,7 @@
 
         <!-- สถานะปกติ 5 ขั้นตอน -->
         <div th:if="${order.status.name() != 'CANCELLED'}"
-             style="display: flex; justify-content: space-between; position: relative; max-width: 800px; margin: 0 auto 32px auto;">
+             class="stepper">
 
             <!-- เส้นเชื่อม Progress Line -->
             <div style="position: absolute; top: 20px; left: 40px; right: 40px; height: 4px; background: var(--border); z-index: 1;"></div>
@@ -92,7 +92,7 @@
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
                 <span style="font-size: 1.1rem; font-weight: 600;">สถานะปัจจุบัน:</span>
                 <span class="badge" style="font-size: 1rem; font-weight: bold; padding: 4px 14px; background: var(--primary); color: #fff;"
-                      th:text="${order.status}">PENDING</span>
+                      th:text="${order.status.label}">รอร้านยืนยัน</span>
             </div>
             <div style="color: var(--muted); font-size: 0.95rem; line-height: 1.5;">
                 <span th:if="${order.status.name() == 'PENDING'}">คำสั่งซื้อถูกส่งเข้าระบบเรียบร้อยแล้ว กำลังรอพนักงานของร้านกดยืนยันเพื่อเริ่มดำเนินการ</span>

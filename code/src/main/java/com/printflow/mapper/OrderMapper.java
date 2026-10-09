@@ -17,13 +17,15 @@ public class OrderMapper {
      * @param addonIdsByItemId id ของบริการเสริมในแต่ละ item
      * @param serviceNames     ชื่อบริการพิมพ์ (key = serviceId)
      * @param addonNames       ชื่อบริการเสริม (key = addonId)
+     * @param customerName     ชื่อผู้ใช้ของลูกค้าเจ้าของ order
      */
     public OrderResponse toResponse(
             PrintOrder order,
             List<PrintItem> items,
             Map<Long, List<Long>> addonIdsByItemId,
             Map<Long, String> serviceNames,
-            Map<Long, String> addonNames
+            Map<Long, String> addonNames,
+            String customerName
     ) {
         List<OrderItemResponse> itemResponses =
                 items == null
@@ -44,6 +46,7 @@ public class OrderMapper {
                 order.getId(),
                 order.getOrderNumber(),
                 order.getUserId(),
+                customerName,
                 order.getStatus(),
                 order.getTotalPrice(),
                 order.getCreatedAt(),

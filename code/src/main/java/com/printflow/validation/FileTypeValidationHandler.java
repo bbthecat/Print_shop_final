@@ -22,7 +22,7 @@ public class FileTypeValidationHandler extends OrderValidationHandler {
                     || !ALLOWED_FILE_TYPES.contains(file.getFileType().toLowerCase())) {
 
                 throw new ValidationException(
-                        "File type is not supported: " + file.getFileType()
+                        "รองรับเฉพาะไฟล์ PDF, JPG และ PNG (ไฟล์ที่ส่งมา: " + file.getFileName() + ")"
                 );
             }
         }

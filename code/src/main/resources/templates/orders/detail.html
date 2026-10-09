@@ -6,7 +6,7 @@
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <main class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div class="page-header">
         <div>
             <h1 style="margin: 0;">คำสั่งซื้อ <span th:text="${order.orderNumber}">ORD-12345</span></h1>
             <p class="muted" style="margin: 4px 0 0 0;"
@@ -22,7 +22,7 @@
 
     <div th:replace="~{fragments/layout :: flash}"></div>
 
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+    <div class="two-col">
         <!-- รายการสินค้าและบริการ -->
         <div class="card">
             <h2 style="font-size: 1.25rem; margin-bottom: 16px;">รายการงานพิมพ์</h2>
@@ -47,8 +47,8 @@
                     </td>
                     <td style="text-align: center;" th:text="${item.pageCount}">1</td>
                     <td style="text-align: center;" th:text="${item.quantity}">1</td>
-                    <td style="text-align: right;" th:text="${#numbers.formatDecimal(item.unitPrice, 1, 2)} + ' ฿'">0.00 ฿</td>
-                    <td style="text-align: right; font-weight: 600;" th:text="${#numbers.formatDecimal(item.subtotal, 1, 2)} + ' ฿'">0.00 ฿</td>
+                    <td style="text-align: right;" th:text="${#numbers.formatDecimal(item.unitPrice, 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</td>
+                    <td style="text-align: right; font-weight: 600;" th:text="${#numbers.formatDecimal(item.subtotal, 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</td>
                 </tr>
                 </tbody>
             </table>
@@ -65,9 +65,9 @@
                     <div class="muted" style="font-size: 0.9rem;">สถานะคำสั่งซื้อ:</div>
                     <div style="margin-top: 4px;">
                         <span class="badge"
-                              th:classappend="${order.status.name() == 'COMPLETED'} ? 'badge-active' : (${order.status.name() == 'CANCELLED'} ? 'badge-inactive' : 'badge')"
-                              style="font-size: 0.95rem; font-weight: bold; padding: 4px 12px; background: #eef2f6;"
-                              th:text="${order.status}">PENDING</span>
+                              th:classappend="'status-' + ${order.status.name().toLowerCase()}"
+                              style="font-size: 0.95rem; font-weight: bold; padding: 4px 12px;"
+                              th:text="${order.status.label}">รอร้านยืนยัน</span>
                     </div>
                 </div>
 
@@ -77,21 +77,37 @@
                 </div>
 
                 <div style="margin-bottom: 16px;">
-                    <div class="muted" style="font-size: 0.9rem;">รหัสลูกค้า:</div>
-                    <div th:text="'User #' + ${order.userId}">User #1</div>
+                    <div class="muted" style="font-size: 0.9rem;">ลูกค้า:</div>
+                    <div th:text="${order.customerName}">customer01</div>
+                </div>
+
+                <div style="margin-bottom: 16px;" th:if="${files != null and !files.isEmpty()}">
+                    <div class="muted" style="font-size: 0.9rem;">ไฟล์งาน:</div>
+                    <div th:each="f : ${files}">
+                        <span th:text="${f.fileName}">report.pdf</span>
+                        <a th:if="${f.filePath.startsWith('http')}" th:href="${f.filePath}" target="_blank" rel="noopener">(เปิดลิงก์)</a>
+                        <span th:unless="${f.filePath.startsWith('http')}" class="muted" th:text="'(' + ${f.filePath} + ')'">(นำไฟล์มาที่ร้าน)</span>
+                    </div>
                 </div>
 
                 <div style="border-top: 2px dashed var(--border); padding-top: 14px; margin-top: 16px; display: flex; justify-content: space-between; align-items: baseline;">
                     <span style="font-size: 1.1rem; font-weight: 600;">ยอดรวมสุทธิ:</span>
                     <span style="font-size: 1.4rem; font-weight: bold; color: var(--primary);"
-                          th:text="${#numbers.formatDecimal(order.totalPrice, 1, 2)} + ' ฿'">0.00 ฿</span>
+                          th:text="${#numbers.formatDecimal(order.totalPrice, 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</span>
                 </div>
 
                 <div style="margin-top: 24px;">
                     <a th:href="@{'/orders/' + ${order.id} + '/tracking'}" class="btn btn-block text-center">
-                        ติดตามสถานะ (Order Tracking)
+                        ติดตามสถานะ
                     </a>
                 </div>
+
+                <!-- UC-07: ลูกค้ายกเลิกได้เฉพาะตอนที่ร้านยังไม่ยืนยัน -->
+                <form th:if="${order.status.name() == 'PENDING'}"
+                      th:action="@{/orders/{id}/cancel(id=${order.id})}" method="post" style="margin-top: 12px;"
+                      onsubmit="return confirm('ยืนยันการยกเลิกคำสั่งซื้อนี้?');">
+                    <button type="submit" class="btn btn-danger btn-block">ยกเลิกคำสั่งซื้อ</button>
+                </form>
             </div>
         </div>
     </div>
