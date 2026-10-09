@@ -29,8 +29,8 @@
                 <div class="form-group">
                     <label for="discountType">ประเภทส่วนลด</label>
                     <select th:field="*{discountType}">
-                        <option value="PERCENTAGE">PERCENTAGE (เปอร์เซ็นต์ %)</option>
-                        <option value="FIXED_AMOUNT">FIXED_AMOUNT (จำนวนเงินคงที่)</option>
+                        <option value="PERCENTAGE">ลดเป็นเปอร์เซ็นต์ (%)</option>
+                        <option value="FIXED_AMOUNT">ลดเป็นจำนวนเงิน (บาท)</option>
                     </select>
                 </div>
             </div>
@@ -117,14 +117,19 @@
                     <span th:text="${promo.endDate != null ? #temporals.format(promo.endDate, 'dd/MM/yyyy HH:mm') : '-'}">31/12/2026</span>
                 </td>
                 <td>
-                    <span class="badge badge-success">เปิดใช้งาน</span>
+                    <span th:if="${promo.active}" class="badge badge-success">เปิดใช้งาน</span>
+                    <span th:unless="${promo.active}" class="badge badge-inactive">ปิดใช้งาน</span>
                 </td>
                 <td>
-                    <form th:action="@{/admin/promotions/{id}/deactivate(id=${promo.id})}" method="post" style="display: inline;">
+                    <a class="btn btn-small" th:href="@{/admin/promotions/{id}/edit(id=${promo.id})}">แก้ไข</a>
+                    <form th:if="${promo.active}" th:action="@{/admin/promotions/{id}/deactivate(id=${promo.id})}" method="post" style="display: inline;">
                         <button type="submit" class="btn btn-danger btn-small"
                                 onclick="return confirm('ยืนยันที่จะปิดการใช้งานโปรโมชันนี้?');">
                             ปิดใช้งาน
                         </button>
+                    </form>
+                    <form th:unless="${promo.active}" th:action="@{/admin/promotions/{id}/activate(id=${promo.id})}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-small">เปิดใช้งาน</button>
                     </form>
                 </td>
             </tr>

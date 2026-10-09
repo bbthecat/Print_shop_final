@@ -33,9 +33,9 @@
                     <div class="form-group">
                         <label for="pricingType">ประเภทราคา</label>
                         <select th:field="*{pricingType}">
-                            <option value="BLACK_WHITE">BLACK_WHITE (ขาวดำ)</option>
-                            <option value="COLOR">COLOR (สี)</option>
-                            <option value="PHOTO">PHOTO (ภาพถ่าย)</option>
+                            <option value="BLACK_WHITE">ขาวดำ (คิดต่อหน้า)</option>
+                            <option value="COLOR">สี (คิดต่อหน้า เกิน 50 หน้าลด 10%)</option>
+                            <option value="PHOTO">ภาพถ่าย (คิดต่อแผ่น)</option>
                         </select>
                     </div>
                 </div>
@@ -75,16 +75,20 @@
                 <tr th:each="svc : ${services}">
                     <td th:text="${svc.id}">1</td>
                     <td><strong th:text="${svc.name}">Name</strong></td>
-                    <td><span class="badge" th:text="${svc.pricingType}">TYPE</span></td>
+                    <td><span class="badge" th:text="${svc.pricingType.label}">ขาวดำ</span></td>
                     <td style="text-align: right; font-weight: bold;"
-                        th:text="${#numbers.formatDecimal(svc.basePrice, 1, 2)} + ' ฿'">0.00 ฿</td>
+                        th:text="${#numbers.formatDecimal(svc.basePrice, 1, 2)} + ' บาท'">0.00 บาท</td>
                     <td>
                         <span th:if="${svc.active}" class="badge badge-success">เปิดใช้งาน</span>
                         <span th:unless="${svc.active}" class="badge badge-muted">ปิดใช้งาน</span>
                     </td>
                     <td style="text-align: center;">
+                        <a class="btn btn-small" th:href="@{/admin/services/{id}/edit(id=${svc.id})}">แก้ไข</a>
                         <form th:if="${svc.active}" th:action="@{/admin/services/{id}/deactivate(id=${svc.id})}" method="post" style="display: inline;">
                             <button type="submit" class="btn btn-small btn-secondary" onclick="return confirm('ต้องการปิดการใช้งานบริการนี้หรือไม่?')">ปิดใช้งาน</button>
+                        </form>
+                        <form th:unless="${svc.active}" th:action="@{/admin/services/{id}/activate(id=${svc.id})}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-small">เปิดใช้งาน</button>
                         </form>
                     </td>
                 </tr>
@@ -149,14 +153,18 @@
                     <td><strong th:text="${addon.name}">Name</strong></td>
                     <td class="muted" th:text="${addon.description != null ? addon.description : '-'}">-</td>
                     <td style="text-align: right; font-weight: bold;"
-                        th:text="${#numbers.formatDecimal(addon.price, 1, 2)} + ' ฿'">0.00 ฿</td>
+                        th:text="${#numbers.formatDecimal(addon.price, 1, 2)} + ' บาท'">0.00 บาท</td>
                     <td>
                         <span th:if="${addon.active}" class="badge badge-success">เปิดใช้งาน</span>
                         <span th:unless="${addon.active}" class="badge badge-muted">ปิดใช้งาน</span>
                     </td>
                     <td style="text-align: center;">
+                        <a class="btn btn-small" th:href="@{/admin/services/addons/{id}/edit(id=${addon.id})}">แก้ไข</a>
                         <form th:if="${addon.active}" th:action="@{/admin/services/addons/{id}/deactivate(id=${addon.id})}" method="post" style="display: inline;">
                             <button type="submit" class="btn btn-small btn-secondary" onclick="return confirm('ต้องการปิดการใช้งานบริการเสริมนี้หรือไม่?')">ปิดใช้งาน</button>
+                        </form>
+                        <form th:unless="${addon.active}" th:action="@{/admin/services/addons/{id}/activate(id=${addon.id})}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-small">เปิดใช้งาน</button>
                         </form>
                     </td>
                 </tr>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('แก้ไขโปรโมชัน')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container narrow">
+    <section class="card">
+        <h1 th:text="'แก้ไขโปรโมชัน ' + ${form.code}">แก้ไขโปรโมชัน</h1>
+
+        <form th:action="@{/admin/promotions/{id}/edit(id=${promotionId})}" th:object="${form}" method="post" novalidate>
+            <!-- รหัสโปรโมชันแก้ไม่ได้ (ลูกค้าอาจใช้รหัสนี้อยู่แล้ว) -->
+            <input type="hidden" th:field="*{code}">
+
+            <div class="form-group">
+                <label for="discountType">ประเภทส่วนลด</label>
+                <select th:field="*{discountType}">
+                    <option value="PERCENTAGE">ลดเป็นเปอร์เซ็นต์ (%)</option>
+                    <option value="FIXED_AMOUNT">ลดเป็นจำนวนเงิน (บาท)</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="discountValue">มูลค่าส่วนลด</label>
+                    <input th:field="*{discountValue}" type="number" step="0.01"
+                           th:classappend="${#fields.hasErrors('discountValue')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('discountValue')}" th:errors="*{discountValue}"></div>
+                    <div class="field-error" th:if="${#fields.hasErrors('discountValueValid')}" th:errors="*{discountValueValid}"></div>
+                </div>
+                <div class="form-group">
+                    <label for="minOrderAmount">ยอดสั่งซื้อขั้นต่ำ (บาท)</label>
+                    <input th:field="*{minOrderAmount}" type="number" step="0.01"
+                           th:classappend="${#fields.hasErrors('minOrderAmount')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('minOrderAmount')}" th:errors="*{minOrderAmount}"></div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="startDate">วันเริ่มต้นใช้งาน</label>
+                    <input th:field="*{startDate}" type="datetime-local"
+                           th:classappend="${#fields.hasErrors('startDate')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('startDate')}" th:errors="*{startDate}"></div>
+                </div>
+                <div class="form-group">
+                    <label for="endDate">วันสิ้นสุดใช้งาน</label>
+                    <input th:field="*{endDate}" type="datetime-local"
+                           th:classappend="${#fields.hasErrors('endDate')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('endDate')}" th:errors="*{endDate}"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">รายละเอียดโปรโมชัน</label>
+                <input th:field="*{description}" type="text">
+            </div>
+
+            <button type="submit" class="btn">บันทึก</button>
+            <a class="btn btn-secondary" th:href="@{/admin/promotions}">ยกเลิก</a>
+        </form>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

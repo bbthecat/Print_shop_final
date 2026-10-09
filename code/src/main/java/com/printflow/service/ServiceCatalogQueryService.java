@@ -18,4 +18,13 @@ public interface ServiceCatalogQueryService {
     AddonService findActiveAddonServiceById(Long id);
 
     List<AddonService> findAllActiveAddonServices();
+
+    // สำหรับหน้า Admin: รวมรายการที่ปิดใช้งานแล้วด้วย (เพื่อแก้ไข / เปิดใช้งานใหม่ได้)
+    List<PrintService> findAllPrintServices();
+
+    List<AddonService> findAllAddonServices();
+
+    PrintService findPrintServiceById(Long id);
+
+    AddonService findAddonServiceById(Long id);
 }

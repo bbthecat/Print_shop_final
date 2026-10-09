@@ -20,6 +20,8 @@ import java.util.List;
 public class AdminServicePageController {
 
     private static final String VIEW = "admin/services";
+    private static final String SERVICE_EDIT_VIEW = "admin/service-edit";
+    private static final String ADDON_EDIT_VIEW = "admin/addon-edit";
     private static final String REDIRECT = "redirect:/admin/services";
 
     private final ServiceCatalogQueryService queryService;
@@ -97,9 +99,80 @@ public class AdminServicePageController {
         return REDIRECT;
     }
 
+    @PostMapping("/{id}/activate")
+    public String activateService(@PathVariable Long id, RedirectAttributes redirect) {
+        commandService.updatePrintService(id, null, null, null, null, true);
+        redirect.addFlashAttribute("success", "เปิดใช้งานบริการพิมพ์อีกครั้งเรียบร้อยแล้ว");
+        return REDIRECT;
+    }
+
+    @GetMapping("/{id}/edit")
+    public String editServiceForm(@PathVariable Long id, Model model) {
+        PrintService service = queryService.findPrintServiceById(id);
+        AdminServiceForm form = new AdminServiceForm();
+        form.setName(service.getName());
+        form.setDescription(service.getDescription());
+        form.setBasePrice(service.getBasePrice());
+        form.setPricingType(service.getPricingType());
+        model.addAttribute("serviceId", id);
+        model.addAttribute("serviceForm", form);
+        return SERVICE_EDIT_VIEW;
+    }
+
+    @PostMapping("/{id}/edit")
+    public String updateService(@PathVariable Long id,
+                                @Valid @ModelAttribute("serviceForm") AdminServiceForm form,
+                                BindingResult bindingResult,
+                                Model model,
+                                RedirectAttributes redirect) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("serviceId", id);
+            return SERVICE_EDIT_VIEW;
+        }
+        commandService.updatePrintService(id, form.getName(), form.getDescription(), form.getBasePrice(),
+                form.getPricingType(), null);
+        redirect.addFlashAttribute("success", "แก้ไขบริการ " + form.getName() + " เรียบร้อยแล้ว");
+        return REDIRECT;
+    }
+
+    @PostMapping("/addons/{id}/activate")
+    public String activateAddon(@PathVariable Long id, RedirectAttributes redirect) {
+        commandService.updateAddonService(id, null, null, null, true);
+        redirect.addFlashAttribute("success", "เปิดใช้งานบริการเสริมอีกครั้งเรียบร้อยแล้ว");
+        return REDIRECT;
+    }
+
+    @GetMapping("/addons/{id}/edit")
+    public String editAddonForm(@PathVariable Long id, Model model) {
+        AddonService addon = queryService.findAddonServiceById(id);
+        AdminAddonForm form = new AdminAddonForm();
+        form.setName(addon.getName());
+        form.setDescription(addon.getDescription());
+        form.setPrice(addon.getPrice());
+        model.addAttribute("addonId", id);
+        model.addAttribute("addonForm", form);
+        return ADDON_EDIT_VIEW;
+    }
+
+    @PostMapping("/addons/{id}/edit")
+    public String updateAddon(@PathVariable Long id,
+                              @Valid @ModelAttribute("addonForm") AdminAddonForm form,
+                              BindingResult bindingResult,
+                              Model model,
+                              RedirectAttributes redirect) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("addonId", id);
+            return ADDON_EDIT_VIEW;
+        }
+        commandService.updateAddonService(id, form.getName(), form.getDescription(), form.getPrice(), null);
+        redirect.addFlashAttribute("success", "แก้ไขบริการเสริม " + form.getName() + " เรียบร้อยแล้ว");
+        return REDIRECT;
+    }
+
     private void populateModel(Model model) {
-        List<PrintService> services = queryService.findAllActivePrintServices();
-        List<AddonService> addons = queryService.findAllActiveAddonServices();
+        // แสดงทั้งที่เปิดและปิดใช้งาน เพื่อให้ Admin เปิดใช้งานใหม่หรือแก้ไขได้
+        List<PrintService> services = queryService.findAllPrintServices();
+        List<AddonService> addons = queryService.findAllAddonServices();
         model.addAttribute("services", services);
         model.addAttribute("addons", addons);
     }

@@ -21,6 +21,7 @@ import java.util.List;
 public class AdminPromotionPageController {
 
     private static final String VIEW = "admin/promotions";
+    private static final String EDIT_VIEW = "admin/promotion-edit";
     private static final String REDIRECT = "redirect:/admin/promotions";
 
     private final PromotionService promotionService;
@@ -88,8 +89,51 @@ public class AdminPromotionPageController {
         return REDIRECT;
     }
 
+    @PostMapping("/{id}/activate")
+    public String activate(@PathVariable Long id, RedirectAttributes redirect) {
+        promotionService.activate(id);
+        redirect.addFlashAttribute("success", "เปิดใช้งานโปรโมชันอีกครั้งเรียบร้อยแล้ว");
+        return REDIRECT;
+    }
+
+    @GetMapping("/{id}/edit")
+    public String editForm(@PathVariable Long id, Model model) {
+        Promotion promo = promotionService.findById(id);
+        AdminPromotionForm form = new AdminPromotionForm();
+        form.setCode(promo.getCode());
+        form.setDescription(promo.getDescription());
+        form.setDiscountType(promo.getDiscountType());
+        form.setDiscountValue(promo.getDiscountValue());
+        form.setMinOrderAmount(promo.getMinOrderAmount());
+        form.setStartDate(promo.getStartDate());
+        form.setEndDate(promo.getEndDate());
+        model.addAttribute("promotionId", id);
+        model.addAttribute("form", form);
+        return EDIT_VIEW;
+    }
+
+    @PostMapping("/{id}/edit")
+    public String update(@PathVariable Long id,
+                         @Valid @ModelAttribute("form") AdminPromotionForm form,
+                         BindingResult bindingResult,
+                         Model model,
+                         RedirectAttributes redirect) {
+        if (form.getStartDate() != null && form.getEndDate() != null && !form.getEndDate().isAfter(form.getStartDate())) {
+            bindingResult.rejectValue("endDate", "invalid", "วันสิ้นสุดต้องอยู่หลังวันเริ่มต้น");
+        }
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("promotionId", id);
+            return EDIT_VIEW;
+        }
+        promotionService.update(id, form.getDescription(), form.getDiscountType(), form.getDiscountValue(),
+                form.getMinOrderAmount(), form.getStartDate(), form.getEndDate());
+        redirect.addFlashAttribute("success", "แก้ไขโปรโมชัน " + form.getCode() + " เรียบร้อยแล้ว");
+        return REDIRECT;
+    }
+
     private void populateModel(Model model) {
-        List<Promotion> promotions = promotionService.findAllActive();
+        // แสดงทั้งที่เปิดและปิดใช้งาน เพื่อให้ Admin เปิดใช้งานใหม่หรือแก้ไขได้
+        List<Promotion> promotions = promotionService.findAll();
         model.addAttribute("promotions", promotions);
     }
 }
