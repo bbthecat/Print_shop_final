@@ -31,9 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SecurityConfig.class)
 class AuthPageControllerTest {
 
-    @org.springframework.boot.test.mock.mockito.MockBean
-    private com.printflow.service.ServiceCatalogQueryService catalogQueryService;
-
     @Autowired
     private MockMvc mockMvc;
 
