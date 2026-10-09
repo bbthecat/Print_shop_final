@@ -278,6 +278,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
     }
 
     // ใช้ Strategy ส่วนลดของ P2 (PERCENTAGE / FIXED_AMOUNT) แทนการเขียน if/switch เอง
+    // ขั้นต่ำของโปรโมชันตัดสินที่นี่เป็นหลัก: ไม่ถึงขั้นต่ำต้องแจ้งลูกค้า ไม่ใช่ปล่อยให้ได้ส่วนลด 0 เงียบ ๆ
     private BigDecimal calculateDiscount(Promotion promotion, BigDecimal orderTotal) {
         if (promotion.getMinOrderAmount() != null
                 && orderTotal.compareTo(promotion.getMinOrderAmount()) < 0) {
