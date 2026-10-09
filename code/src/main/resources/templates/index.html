@@ -6,32 +6,49 @@
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <main class="container">
-    <section class="card hero">
-        <h1>PrintFlow</h1>
-        <p>ระบบจัดการร้านรับพิมพ์เอกสารและบริการงานพิมพ์ สั่งพิมพ์ ติดตามสถานะ และชำระเงินได้ในที่เดียว</p>
-        <div sec:authorize="isAnonymous()">
-            <a class="btn" th:href="@{/register}">สมัครสมาชิก</a>
-            <a class="btn btn-secondary" th:href="@{/login}">เข้าสู่ระบบ</a>
+    <section class="hero">
+        <span class="pill">สั่งออนไลน์ มารับที่ร้าน</span>
+        <h1>พิมพ์งานส่งได้ทันเวลา <span class="lit">ไม่ต้องยืนรอคิวหน้าร้าน</span></h1>
+        <p>เลือกไฟล์ ระบบนับหน้าและคิดราคาให้ทันที แล้วติดตามได้ว่างานพิมพ์ถึงขั้นไหน</p>
+        <div class="inline-controls">
+            <th:block sec:authorize="isAnonymous()">
+                <a class="btn btn-large" th:href="@{/register}">สมัครแล้วสั่งพิมพ์</a>
+                <a class="btn btn-secondary btn-large" th:href="@{/login}">เข้าสู่ระบบ</a>
+            </th:block>
+            <th:block sec:authorize="hasRole('CUSTOMER')">
+                <a class="btn btn-large" th:href="@{/orders/create}">สั่งพิมพ์งาน</a>
+                <a class="btn btn-secondary btn-large" th:href="@{/orders}">งานของฉัน</a>
+            </th:block>
+            <th:block sec:authorize="hasAnyRole('STAFF','ADMIN')">
+                <a class="btn btn-large" th:href="@{/staff/orders}">ดูคิวงาน</a>
+                <a class="btn btn-secondary btn-large" th:href="@{/staff/dashboard}">ภาพรวมวันนี้</a>
+            </th:block>
         </div>
-        <p sec:authorize="isAuthenticated()">
-            ยินดีต้อนรับ <strong sec:authentication="name">username</strong>
-        </p>
     </section>
 
-    <!-- ทางลัดตาม role -->
-    <div class="stats" sec:authorize="hasRole('CUSTOMER')">
-        <a class="card" th:href="@{/orders/create}"><strong>สั่งพิมพ์งาน</strong><p class="muted">เลือกบริการ จำนวนหน้า และบริการเสริม</p></a>
-        <a class="card" th:href="@{/orders}"><strong>คำสั่งซื้อของฉัน</strong><p class="muted">ดูประวัติและติดตามสถานะงาน</p></a>
-        <a class="card" th:href="@{/notifications}"><strong>แจ้งเตือน</strong><p class="muted">อัปเดตสถานะงานจากร้าน</p></a>
-        <a class="card" th:href="@{/profile}"><strong>ข้อมูลส่วนตัว</strong><p class="muted">แก้ไขชื่อ อีเมล เบอร์โทร</p></a>
-    </div>
+    <h2 class="section-title">สั่งพิมพ์ใน 3 ขั้น</h2>
+    <ol class="steps">
+        <li><strong>เลือกบริการและไฟล์</strong><span class="muted">ขาวดำ สี หรือรูปถ่าย ระบบนับหน้า PDF ให้เอง</span></li>
+        <li><strong>ดูราคาแล้วส่งงาน</strong><span class="muted">ราคาขึ้นทันทีตามจำนวนหน้า ชุด งานเก็บเล่ม และโค้ดส่วนลด</span></li>
+        <li><strong>มารับและจ่ายที่ร้าน</strong><span class="muted">มีแจ้งเตือนเมื่อร้านรับงาน กำลังพิมพ์ และงานพร้อมรับ</span></li>
+    </ol>
 
-    <div class="stats" sec:authorize="hasAnyRole('STAFF','ADMIN')">
-        <a class="card" th:href="@{/staff/dashboard}"><strong>แดชบอร์ด</strong><p class="muted">ภาพรวมงานที่ต้องทำ</p></a>
-        <a class="card" th:href="@{/staff/orders}"><strong>จัดการงาน</strong><p class="muted">ยืนยัน เปลี่ยนสถานะงานพิมพ์</p></a>
-        <a class="card" th:href="@{/staff/payments}"><strong>การชำระเงิน</strong><p class="muted">บันทึกการรับชำระ</p></a>
-        <a class="card" sec:authorize="hasRole('ADMIN')" th:href="@{/admin/reports}"><strong>รายงาน</strong><p class="muted">ยอดขายและบริการยอดนิยม</p></a>
-    </div>
+    <th:block th:if="${services != null and !services.isEmpty()}">
+        <h2 class="section-title">ราคาพิมพ์</h2>
+        <div class="price-board">
+            <div class="price-row" th:each="svc : ${services}">
+                <span th:text="${svc.name}">Document B&amp;W (A4)</span>
+                <span class="leader"></span>
+                <span th:text="${#numbers.formatDecimal(svc.basePrice, 1, 'COMMA', 2, 'POINT')} + (${svc.pricingType.name() == 'PHOTO'} ? ' บาท / แผ่น' : ' บาท / หน้า')">1.50 บาท / หน้า</span>
+            </div>
+            <div class="price-row" th:each="addon : ${addons}">
+                <span class="muted" th:text="${addon.name}">Corner Staple</span>
+                <span class="leader"></span>
+                <span class="muted" th:text="'+' + ${#numbers.formatDecimal(addon.price, 1, 'COMMA', 2, 'POINT')} + ' บาท / ชุด'">+2.00 บาท / ชุด</span>
+            </div>
+        </div>
+        <p class="text-center muted" style="margin-top: 14px;"><a th:href="@{/services}">ดูรายละเอียดบริการและโปรโมชัน</a></p>
+    </th:block>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
