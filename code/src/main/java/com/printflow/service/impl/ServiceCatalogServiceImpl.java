@@ -10,6 +10,7 @@ import com.printflow.service.ServiceCatalogCommandService;
 import com.printflow.service.ServiceCatalogQueryService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,32 @@ public class ServiceCatalogServiceImpl implements ServiceCatalogQueryService, Se
     }
 
     // --- Query Service ---
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PrintService> findAllPrintServices() {
+        return printServiceRepository.findAll(Sort.by("id"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AddonService> findAllAddonServices() {
+        return addonServiceRepository.findAll(Sort.by("id"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PrintService findPrintServiceById(Long id) {
+        return printServiceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Print service not found with ID: " + id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AddonService findAddonServiceById(Long id) {
+        return addonServiceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Addon service not found with ID: " + id));
+    }
 
     @Override
     @Transactional(readOnly = true)

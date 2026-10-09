@@ -51,11 +51,11 @@
                 <tr th:each="service : ${services}">
                     <td><strong th:text="${service.name}">ชื่อบริการ</strong></td>
                     <td>
-                        <span class="badge" th:text="${service.pricingType}">ประเภท</span>
+                        <span class="badge" th:text="${service.pricingType.label}">ประเภท</span>
                     </td>
                     <td class="muted" th:text="${service.description != null ? service.description : '-'}">-</td>
                     <td style="text-align: right; font-weight: bold; color: var(--primary);"
-                        th:text="${#numbers.formatDecimal(service.basePrice, 1, 2)} + ' ฿'">0.00 ฿</td>
+                        th:text="${#numbers.formatDecimal(service.basePrice, 1, 2)} + ' บาท'">0.00 บาท</td>
                 </tr>
                 <tr th:if="${services == null or services.isEmpty()}">
                     <td colspan="4" class="text-center muted" style="padding: 24px;">ยังไม่มีรายการบริการในขณะนี้</td>
@@ -82,7 +82,7 @@
                     <td><strong th:text="${addon.name}">เข้าเล่ม</strong></td>
                     <td class="muted" th:text="${addon.description != null ? addon.description : '-'}">-</td>
                     <td style="text-align: right; font-weight: bold; color: var(--primary);"
-                        th:text="${#numbers.formatDecimal(addon.price, 1, 2)} + ' ฿'">0.00 ฿</td>
+                        th:text="${#numbers.formatDecimal(addon.price, 1, 2)} + ' บาท'">0.00 บาท</td>
                 </tr>
                 <tr th:if="${addons == null or addons.isEmpty()}">
                     <td colspan="3" class="text-center muted" style="padding: 24px;">ยังไม่มีบริการเสริมในขณะนี้</td>
