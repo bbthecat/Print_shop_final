@@ -317,9 +317,6 @@ details.card > summary { cursor: pointer; font-weight: 600; }
 .pill::before { content: ""; width: 22px; height: 12px; background: linear-gradient(90deg, var(--cyan) 0 33%, var(--magenta) 33% 66%, var(--yellow) 66%); }
 .hero h1 { margin: 22px 0 20px; font-size: clamp(2.5rem, 5.4vw, 4rem); line-height: 1.1; letter-spacing: -0.035em; }
 .hero p { color: var(--ink-2); max-width: 480px; margin: 0 0 32px; font-size: 1.1rem; line-height: 1.7; }
-.facts { display: flex; flex-wrap: wrap; gap: 16px 36px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--rule); }
-.facts strong { display: block; font-size: 1.6rem; letter-spacing: -0.02em; line-height: 1.2; }
-.facts span { color: var(--muted); font-size: .9rem; }
 .hero-art .sheet-under { position: absolute; left: 40px; top: 2px; right: 6px; bottom: 14px; background: #E9EBE6; border: 1px solid var(--rule); transform: rotate(2.2deg); }
 .hero-art .slip { box-shadow: 0 22px 44px -26px rgba(22, 24, 29, .45); }
 .reg-mark { width: 34px; height: 34px; flex: none; }
@@ -347,35 +344,17 @@ details.card > summary { cursor: pointer; font-weight: 600; }
 .color-bar i:nth-child(7) { background: #F2C200; } .color-bar i:nth-child(8) { background: #F7DA66; } .color-bar i:nth-child(9) { background: #FBEDB3; }
 .color-bar i:nth-child(10) { background: #16181D; } .color-bar i:nth-child(11) { background: #73767C; } .color-bar i:nth-child(12) { background: #B9BBBE; }
 
-.section-title { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 8px 16px; font-size: 1.9rem; letter-spacing: -0.025em; margin: 104px 0 24px; padding-bottom: 14px; border-bottom: 1.5px solid var(--ink); }
-.section-title small { font-size: 1rem; font-weight: 400; letter-spacing: 0; color: var(--muted); }
-.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; counter-reset: step; }
-.steps li { counter-increment: step; position: relative; padding: 26px; background: var(--sheet); border: 1px solid var(--rule); border-top: 4px solid var(--step); --step: var(--cyan); }
-.steps li:nth-child(2) { --step: var(--magenta); }
-.steps li:nth-child(3) { --step: var(--yellow); }
-.steps li::before { content: counter(step); display: block; font-size: 3.2rem; font-weight: 700; line-height: 1; letter-spacing: -0.04em; color: var(--step); margin-bottom: 14px; }
-.steps li:nth-child(3)::before { color: #C79F00; }
-.steps strong { display: block; font-size: 1.15rem; margin-bottom: 6px; }
-.steps .muted { color: var(--ink-2); line-height: 1.65; }
 
-/* คำถามที่พบบ่อย: กดกางดูคำตอบ */
-.faq { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 0 40px; }
-.faq details { border-bottom: 1px solid var(--rule); }
-.faq summary { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 60px; padding: 12px 0; font-weight: 600; font-size: 1.05rem; cursor: pointer; list-style: none; }
-.faq summary::-webkit-details-marker { display: none; }
-.faq summary::after { content: "+"; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none; border: 1.5px solid var(--ink); font-weight: 500; line-height: 1; transition: background-color .15s ease, color .15s ease; }
-.faq details[open] summary::after { content: "−"; background: var(--ink); color: #FFFFFF; }
-.faq summary:hover::after { background: var(--paper); }
-.faq details[open] summary:hover::after { background: #2B2E35; }
-.faq p { margin: 0 0 18px; padding-right: 44px; color: var(--ink-2); line-height: 1.7; }
 
-.ink-band { margin-top: 104px; display: flex; flex-wrap: wrap; align-items: center; gap: 32px 40px; padding: 44px; background: var(--ink); color: #F4F5F2; }
-.ink-band h2 { font-size: 1.9rem; letter-spacing: -0.025em; margin: 0 0 10px; }
-.ink-band p { margin: 0; color: #B9BBBE; line-height: 1.7; }
-.ink-band > div:first-child { flex: 1 1 300px; min-width: 0; }
-.ink-swatches { flex: 2 1 520px; min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
-.ink-swatches div { padding: 16px; background: #22252B; border-top: 6px solid var(--c); }
-.ink-swatches small { display: block; color: #B9BBBE; }
+
+
+/* จุดเด่น 3 ข้อใต้ hero: แถวเดียว คั่นด้วยเส้น */
+.highlights { list-style: none; margin: 72px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); border-top: 1.5px solid var(--ink); }
+.highlights li { padding: 22px 28px 4px 0; }
+.highlights li + li { padding-left: 28px; border-left: 1px solid var(--rule); }
+.highlights strong { display: flex; align-items: center; gap: 10px; font-size: 1.12rem; margin-bottom: 4px; }
+.highlights strong::before { content: ""; width: 12px; height: 12px; flex: none; background: var(--c); }
+.highlights span { color: var(--muted); line-height: 1.6; }
 
 /* ---------- ใบสั่งงาน: หัวข้อมีเลขสีหมึก ---------- */
 .step-section { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 0 16px; padding: 28px 0; border-top: 1px solid var(--rule); }
@@ -548,7 +527,7 @@ body:has(> .navbar.side) .slip-frame { top: 28px; }
     main.container { margin-top: 28px; padding: 0 16px; }
     h1 { font-size: 1.9rem; }
     .form-row { flex-direction: column; gap: 0; }
-    .two-col, .addon-grid, .steps { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+    .two-col, .addon-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
     .slip-frame { position: static; }
     .step-section { grid-template-columns: 36px minmax(0, 1fr); }
     .progress { grid-template-columns: minmax(0, 1fr); gap: 0; }
@@ -557,9 +536,9 @@ body:has(> .navbar.side) .slip-frame { top: 28px; }
     .stepper { flex-wrap: wrap; gap: 12px; }
     table { font-size: .9rem; }
     .actions { flex-wrap: wrap; justify-content: flex-start; }
-    .ink-band { padding: 28px 22px; }
-    .section-title { margin-top: 72px; font-size: 1.6rem; }
     .hero-art { padding: 14px 0 22px; }
+    .highlights { margin-top: 48px; }
+    .highlights li, .highlights li + li { padding: 18px 0; border-left: none; border-bottom: 1px solid var(--rule); }
     .printer-body { padding: 20px 18px 0; height: 104px; }
     .printer-slot { left: 16px; right: 16px; }
     .printer-feed { margin: -22px 22px 0; padding: 0 4px; }
