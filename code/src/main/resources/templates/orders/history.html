@@ -61,9 +61,12 @@
                 </td>
             </tr>
             <tr th:if="${orders.content.isEmpty()}">
-                <td colspan="6" class="text-center muted" style="padding: 40px 16px;">
-                    <p style="margin-bottom: 12px; font-size: 1.1rem;">ยังไม่มีรายการคำสั่งซื้อ</p>
-                    <a th:href="@{/orders/create}" class="btn">เริ่มต้นสั่งพิมพ์งานชิ้นแรก</a>
+                <td colspan="6" style="padding: 0; border: none;">
+                    <div class="empty">
+                        <strong>ยังไม่มีคำสั่งซื้อ</strong>
+                        <p>สั่งงานแรกได้เลย ระบบนับหน้าและคิดราคาให้ทันที</p>
+                        <a th:href="@{/orders/create}" class="btn">สั่งพิมพ์งานแรก</a>
+                    </div>
                 </td>
             </tr>
             </tbody>

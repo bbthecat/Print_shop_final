@@ -70,7 +70,12 @@
                 <td class="muted" th:text="${#temporals.format(order.createdAt(), 'dd/MM HH:mm')}">-</td>
             </tr>
             <tr th:if="${orders.isEmpty()}">
-                <td colspan="7" class="text-center muted" style="padding: 32px 0;">ไม่มีงานในคิวนี้</td>
+                <td colspan="7" style="padding: 0; border: none;">
+                    <div class="empty" style="border: none;">
+                        <strong>ไม่มีงานในคิวนี้</strong>
+                        <p>งานใหม่ที่ลูกค้าส่งเข้ามาจะขึ้นที่แท็บ "รอร้านยืนยัน"</p>
+                    </div>
+                </td>
             </tr>
             </tbody>
         </table>

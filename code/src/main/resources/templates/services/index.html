@@ -21,15 +21,19 @@
     <!-- โปรโมชันเด่น -->
     <section th:if="${promotions != null and !promotions.isEmpty()}" style="margin-bottom: 32px;">
         <h2>โปรโมชันและส่วนลดพิเศษ</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-            <div th:each="promo : ${promotions}" class="card" style="border-left: 4px solid var(--primary); padding: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span class="badge badge-success" th:text="${promo.code}" style="font-size: 1rem; font-weight: bold;">CODE</span>
-                    <small class="muted" th:text="${promo.discountType.name() == 'PERCENTAGE' ? 'ลด ' + promo.discountValue + '%' : 'ลด ' + promo.discountValue + ' บาท'}"></small>
+        <p class="muted" style="margin: -6px 0 16px;">ใช้ได้คนละ 1 ครั้งต่อโค้ด กดเลือกโค้ดได้ตอนสั่งพิมพ์</p>
+        <div class="coupons">
+            <div th:each="promo : ${promotions}" class="coupon">
+                <div class="coupon-body">
+                    <div class="coupon-code" th:text="${promo.code}">CODE</div>
+                    <p th:text="${promo.description}">รายละเอียดโปรโมชัน</p>
+                    <p th:if="${promo.minOrderAmount != null and promo.minOrderAmount > 0}"
+                       th:text="'สั่งครบ ' + ${#numbers.formatDecimal(promo.minOrderAmount, 1, 'COMMA', 0, 'POINT')} + ' บาท'">สั่งครบ 100 บาท</p>
                 </div>
-                <p style="margin: 12px 0 8px 0;" th:text="${promo.description}">รายละเอียดโปรโมชัน</p>
-                <small class="muted" th:if="${promo.minOrderAmount != null and promo.minOrderAmount > 0}"
-                       th:text="'ขั้นต่ำ ' + ${promo.minOrderAmount} + ' บาท'">ขั้นต่ำ 0 บาท</small>
+                <div class="coupon-value">
+                    <strong th:text="${promo.discountType.name() == 'PERCENTAGE'} ? ${#numbers.formatDecimal(promo.discountValue, 1, 0)} + '%' : ${#numbers.formatDecimal(promo.discountValue, 1, 0)} + '฿'">10%</strong>
+                    <span>ส่วนลด</span>
+                </div>
             </div>
         </div>
     </section>

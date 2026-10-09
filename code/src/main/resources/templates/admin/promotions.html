@@ -80,8 +80,9 @@
     <!-- ตารางแสดงรายการโปรโมชันปัจจุบัน -->
     <section>
         <h2>รายการโปรโมชัน</h2>
-        <div th:if="${#lists.isEmpty(promotions)}" class="card muted" style="text-align: center; padding: 24px;">
-            ยังไม่มีโปรโมชันที่เปิดใช้งานอยู่ในระบบ
+        <div th:if="${#lists.isEmpty(promotions)}" class="empty">
+            <strong>ยังไม่มีโปรโมชัน</strong>
+            <p>กด "เพิ่มโค้ดโปรโมชันใหม่" ด้านบนเพื่อสร้างโค้ดแรก</p>
         </div>
 
         <div th:if="${not #lists.isEmpty(promotions)}" class="card flush">

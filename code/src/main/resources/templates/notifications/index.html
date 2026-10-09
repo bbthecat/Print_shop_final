@@ -22,7 +22,10 @@
         <span th:if="${n.read()}" class="badge badge-active">อ่านแล้ว</span>
     </div>
 
-    <p class="text-center muted" th:if="${notifications.isEmpty()}">ยังไม่มีการแจ้งเตือน</p>
+    <div class="empty" th:if="${notifications.isEmpty()}">
+        <strong>ยังไม่มีการแจ้งเตือน</strong>
+        <p>ร้านจะแจ้งที่นี่ทุกครั้งที่งานของคุณเปลี่ยนสถานะ</p>
+    </div>
 
     <div class="pagination" th:if="${notifications.totalPages > 1}">
         <a th:if="${!notifications.first}" th:href="@{/notifications(page=${notifications.number - 1})}">ก่อนหน้า</a>
