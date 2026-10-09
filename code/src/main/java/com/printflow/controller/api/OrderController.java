@@ -2,6 +2,8 @@ package com.printflow.controller.api;
 
 import com.printflow.domain.enums.OrderStatus;
 import com.printflow.dto.request.OrderCreateRequest;
+import com.printflow.dto.response.OrderFileResponse;
+import com.printflow.dto.response.OrderItemResponse;
 import com.printflow.dto.response.OrderResponse;
 import com.printflow.security.CurrentUserProvider;
 import com.printflow.service.OrderCommandService;
@@ -15,6 +17,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @Tag(name = "Orders", description = "จัดการคำสั่งซื้อ")
@@ -59,11 +63,20 @@ public class OrderController {
     public ResponseEntity<OrderResponse> getById(
             @PathVariable Long id
     ) {
-        return ResponseEntity.ok(queryService.getByIdForUser(
-                id,
-                currentUserProvider.getCurrentUserId(),
-                currentUserProvider.isStaffOrAdmin()
-        ));
+        return ResponseEntity.ok(findVisibleOrder(id));
+    }
+
+    @GetMapping("/{id}/items")
+    @Operation(summary = "Get print items of an order")
+    public ResponseEntity<List<OrderItemResponse>> getItems(@PathVariable Long id) {
+        return ResponseEntity.ok(findVisibleOrder(id).items());
+    }
+
+    @GetMapping("/{id}/files")
+    @Operation(summary = "Get files attached to an order")
+    public ResponseEntity<List<OrderFileResponse>> getFiles(@PathVariable Long id) {
+        findVisibleOrder(id);
+        return ResponseEntity.ok(queryService.getFiles(id));
     }
 
     @PostMapping
@@ -84,5 +97,13 @@ public class OrderController {
         commandService.deleteOrder(id);
         return ResponseEntity.noContent().build();
     }
-}
 
+    // ลูกค้าดูได้เฉพาะ order ของตัวเอง STAFF/ADMIN ดูได้ทุก order
+    private OrderResponse findVisibleOrder(Long id) {
+        return queryService.getByIdForUser(
+                id,
+                currentUserProvider.getCurrentUserId(),
+                currentUserProvider.isStaffOrAdmin()
+        );
+    }
+}

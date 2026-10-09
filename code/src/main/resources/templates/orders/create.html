@@ -6,7 +6,7 @@
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <main class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div class="page-header">
         <div>
             <h1 style="margin: 0;">สร้างคำสั่งซื้อ / สั่งพิมพ์งาน</h1>
             <p class="muted" style="margin: 4px 0 0 0;">เลือกบริการงานพิมพ์ บริการเสริม และใส่รหัสโปรโมชันเพื่อคำนวณราคา</p>
@@ -18,7 +18,7 @@
 
     <div th:replace="~{fragments/layout :: flash}"></div>
 
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+    <div class="two-col">
         <!-- ฟอร์มสร้างคำสั่งซื้อ -->
         <div class="card">
             <h2 style="font-size: 1.25rem; margin-bottom: 20px;">ข้อมูลรายการพิมพ์</h2>
@@ -32,7 +32,7 @@
                                 th:value="${svc.id}"
                                 th:data-price="${svc.basePrice}"
                                 th:data-type="${svc.pricingType}"
-                                th:text="${svc.name} + ' (' + ${svc.pricingType} + ' - ' + ${#numbers.formatDecimal(svc.basePrice, 1, 2)} + ' ฿/หน้า)'">
+                                th:text="${svc.name} + ' (' + ${svc.pricingType.label} + ' - ' + ${#numbers.formatDecimal(svc.basePrice, 1, 2)} + (${svc.pricingType.name() == 'PHOTO'} ? ' บาท/แผ่น)' : ' บาท/หน้า)')">
                         </option>
                     </select>
                     <div class="field-error" th:if="${#fields.hasErrors('serviceId')}" th:errors="*{serviceId}"></div>
@@ -55,14 +55,20 @@
                 <small class="muted">ตัวอย่าง: รายงาน 20 หน้า พิมพ์ 2 เล่ม → จำนวนหน้า 20, จำนวนชุด 2 (บริการเสริมคิดต่อชุด)</small>
 
                 <div class="form-group" style="margin-top: 12px;">
-                    <label for="fileName">ชื่อไฟล์เอกสาร</label>
+                    <label for="fileName">ชื่อไฟล์เอกสาร (PDF, JPG, PNG)</label>
                     <input type="text" id="fileName" th:field="*{fileName}" placeholder="เช่น project_final.pdf">
+                    <div class="field-error" th:if="${#fields.hasErrors('fileName')}" th:errors="*{fileName}"></div>
+                </div>
+                <div class="form-group">
+                    <label for="fileUrl">ลิงก์ไฟล์ (ถ้ามี เช่น Google Drive)</label>
+                    <input type="url" id="fileUrl" th:field="*{fileUrl}" placeholder="https://...">
+                    <div class="field-error" th:if="${#fields.hasErrors('fileUrl')}" th:errors="*{fileUrl}"></div>
                 </div>
 
                 <!-- บริการเสริม -->
                 <div class="form-group" style="margin-top: 16px;">
                     <label style="margin-bottom: 8px;">บริการเสริม (เลือกได้มากกว่า 1 รายการ)</label>
-                    <div th:if="${addons != null and !addons.isEmpty()}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div th:if="${addons != null and !addons.isEmpty()}" class="addon-grid">
                         <div th:each="addon : ${addons}" style="display: flex; align-items: center; gap: 8px; background: #fafbfc; border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px;">
                             <input type="checkbox" th:field="*{addonIds}" th:value="${addon.id}"
                                    th:id="'addon_' + ${addon.id}"
@@ -70,7 +76,7 @@
                                    style="width: auto; cursor: pointer;">
                             <label th:for="'addon_' + ${addon.id}" style="margin: 0; font-weight: normal; cursor: pointer; flex: 1;">
                                 <span th:text="${addon.name}">บริการเสริม</span>
-                                <span class="muted" style="font-size: 0.85rem;" th:text="'(+' + ${#numbers.formatDecimal(addon.price, 1, 2)} + ' ฿)'"></span>
+                                <span class="muted" style="font-size: 0.85rem;" th:text="'(+' + ${#numbers.formatDecimal(addon.price, 1, 2)} + ' บาท/ชุด)'"></span>
                             </label>
                         </div>
                     </div>
@@ -105,7 +111,7 @@
                                     th:onclick="'document.getElementById(\'promotionCode\').value = \'' + ${promo.code} + '\''"
                                     th:text="${promo.code}">CODE</strong>
                             <span class="badge badge-active"
-                                  th:text="${promo.discountType.name() == 'PERCENTAGE' ? 'ลด ' + promo.discountValue + '%' : 'ลด ' + promo.discountValue + ' ฿'}">
+                                  th:text="${promo.discountType.name() == 'PERCENTAGE' ? 'ลด ' + promo.discountValue + '%' : 'ลด ' + promo.discountValue + ' บาท'}">
                             </span>
                         </div>
                         <div style="font-size: 0.85rem; color: var(--muted); margin-top: 4px;" th:text="${promo.description}"></div>
@@ -119,8 +125,8 @@
             <div class="card" style="background: #fdfdfd;">
                 <h3 style="margin-top: 0; font-size: 1.1rem;">ข้อกำหนดการสั่งพิมพ์</h3>
                 <ul style="padding-left: 20px; font-size: 0.88rem; color: var(--muted); line-height: 1.6;">
-                    <li>ระบบตรวจคำสั่งพิมพ์ผ่าน <strong>Chain of Responsibility</strong> (4 ขั้นตอน)</li>
-                    <li>รองรับไฟล์ประเภท PDF, JPEG, PNG</li>
+                    <li>ระบุชื่อไฟล์งาน (PDF, JPG หรือ PNG) และแนบลิงก์ไฟล์ได้ ถ้าไม่มีลิงก์ให้นำไฟล์มาที่ร้าน</li>
+                    <li>บริการเสริมคิดราคาต่อชุด</li>
                     <li>จำนวนพิมพ์ต้องมากกว่า 0</li>
                     <li>เมื่อส่งคำสั่งซื้อ สถานะเริ่มต้นคือ <code>PENDING</code></li>
                 </ul>
