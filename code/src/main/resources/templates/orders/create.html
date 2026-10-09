@@ -54,7 +54,16 @@
                 </div>
                 <small class="muted">ตัวอย่าง: รายงาน 20 หน้า พิมพ์ 2 เล่ม → จำนวนหน้า 20, จำนวนชุด 2 (บริการเสริมคิดต่อชุด)</small>
 
+                <!-- เลือกไฟล์เพื่อให้ระบบนับหน้าให้ (นับในเบราว์เซอร์ ไฟล์ไม่ถูกส่งขึ้น server เพราะ input ไม่มี name) -->
                 <div class="form-group" style="margin-top: 12px;">
+                    <label for="filePicker">เลือกไฟล์เพื่อนับจำนวนหน้าอัตโนมัติ</label>
+                    <input type="file" id="filePicker" accept=".pdf,.jpg,.jpeg,.png">
+                    <small id="filePickerStatus" class="muted" aria-live="polite">
+                        ไฟล์ยังไม่ถูกส่งขึ้นระบบ กรุณาแนบลิงก์ หรือนำไฟล์มาที่ร้าน
+                    </small>
+                </div>
+
+                <div class="form-group">
                     <label for="fileName">ชื่อไฟล์เอกสาร (PDF, JPG, PNG)</label>
                     <input type="text" id="fileName" th:field="*{fileName}" placeholder="เช่น project_final.pdf">
                     <div class="field-error" th:if="${#fields.hasErrors('fileName')}" th:errors="*{fileName}"></div>
@@ -139,5 +148,60 @@
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
+<script>
+    // นับหน้าไฟล์ที่ลูกค้าเลือก แล้วใส่ชื่อไฟล์ + จำนวนหน้าในฟอร์มให้ (ลูกค้าแก้ตัวเลขเองได้)
+    (function () {
+        const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+        const picker = document.getElementById('filePicker');
+        const status = document.getElementById('filePickerStatus');
+        const pageCount = document.getElementById('pageCount');
+        const fileName = document.getElementById('fileName');
+        let pdfjsReady = null;
+
+        function loadPdfJs() {
+            if (!pdfjsReady) {
+                pdfjsReady = new Promise(function (resolve, reject) {
+                    const script = document.createElement('script');
+                    script.src = PDFJS + 'pdf.min.js';
+                    script.onload = function () {
+                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js';
+                        resolve(window.pdfjsLib);
+                    };
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
+            return pdfjsReady;
+        }
+
+        function setPages(n, message) {
+            pageCount.value = n;
+            status.textContent = message + ' (แก้ได้ถ้าจะพิมพ์ไม่ครบทุกหน้า) — ไฟล์ยังไม่ถูกส่งขึ้นระบบ กรุณาแนบลิงก์ หรือนำไฟล์มาที่ร้าน';
+        }
+
+        picker.addEventListener('change', function () {
+            const file = picker.files[0];
+            if (!file) return;
+            fileName.value = file.name;
+            const name = file.name.toLowerCase();
+
+            if (/\.(jpe?g|png)$/.test(name)) {
+                setPages(1, 'ไฟล์รูปภาพ นับเป็น 1 หน้า');
+            } else if (name.endsWith('.pdf')) {
+                status.textContent = 'กำลังนับจำนวนหน้า...';
+                loadPdfJs()
+                    .then(function (pdfjsLib) { return file.arrayBuffer().then(function (data) {
+                        return pdfjsLib.getDocument({ data: data }).promise;
+                    }); })
+                    .then(function (pdf) { setPages(pdf.numPages, 'นับได้ ' + pdf.numPages + ' หน้า'); })
+                    .catch(function () {
+                        status.textContent = 'นับหน้าไม่ได้ (ไฟล์อาจเสียหรือมีรหัสผ่าน) กรุณากรอกจำนวนหน้าเอง';
+                    });
+            } else {
+                status.textContent = 'รองรับเฉพาะไฟล์ PDF, JPG และ PNG';
+            }
+        });
+    })();
+</script>
 </body>
 </html>

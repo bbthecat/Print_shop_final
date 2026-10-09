@@ -84,7 +84,10 @@ class OrderWebControllerTest {
         mockMvc.perform(get("/orders/create"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("orders/create"))
-                .andExpect(model().attributeExists("services", "addons", "promotions", "form"));
+                .andExpect(model().attributeExists("services", "addons", "promotions", "form"))
+                // ช่องเลือกไฟล์ไว้นับหน้าในเบราว์เซอร์ ไม่มี name จึงไม่ส่งไฟล์ขึ้น server
+                .andExpect(content().string(containsString("<input type=\"file\" id=\"filePicker\" accept=\".pdf,.jpg,.jpeg,.png\">")))
+                .andExpect(content().string(containsString("pdf.js/3.11.174/")));
     }
 
     @Test
