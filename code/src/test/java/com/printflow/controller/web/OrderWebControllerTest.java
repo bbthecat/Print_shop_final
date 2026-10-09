@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -22,7 +23,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -53,7 +56,8 @@ class OrderWebControllerTest {
 
     private OrderResponse sampleOrderResponse() {
         OrderItemResponse item = new OrderItemResponse(
-                1L, 1L, 2, BigDecimal.valueOf(5.00), BigDecimal.valueOf(10.00), List.of()
+                1L, 1L, "Document B&W (A4)", 20, 2, BigDecimal.valueOf(5.00), BigDecimal.valueOf(10.00),
+                List.of(1L), List.of("Corner Staple")
         );
         return new OrderResponse(
                 10L, "ORD-12345", 1L, OrderStatus.PENDING,
@@ -78,11 +82,12 @@ class OrderWebControllerTest {
     @WithMockUser
     void createOrder_shouldRedirectToDetailOnSuccess() throws Exception {
         when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
-        when(orderCommandService.createOrder(any())).thenReturn(sampleOrderResponse());
+        when(orderCommandService.createOrder(eq(1L), any())).thenReturn(sampleOrderResponse());
 
         mockMvc.perform(post("/orders/create")
                         .with(csrf())
                         .param("serviceId", "1")
+                        .param("pageCount", "20")
                         .param("quantity", "2")
                         .param("fileName", "test.pdf"))
                 .andExpect(status().is3xxRedirection())
@@ -120,18 +125,33 @@ class OrderWebControllerTest {
     @Test
     @WithMockUser
     void getOrderDetail_shouldReturnDetailViewAndModel() throws Exception {
-        when(orderQueryService.getById(10L)).thenReturn(sampleOrderResponse());
+        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
+        when(orderQueryService.getByIdForUser(10L, 1L, false)).thenReturn(sampleOrderResponse());
 
         mockMvc.perform(get("/orders/10"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("orders/detail"))
-                .andExpect(model().attributeExists("order"));
+                .andExpect(model().attributeExists("order"))
+                .andExpect(content().string(containsString("Document B&amp;W (A4)")))
+                .andExpect(content().string(containsString("Corner Staple")));
+    }
+
+    @Test
+    @WithMockUser
+    void getOrderDetail_otherCustomersOrder_returns403() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(2L);
+        when(orderQueryService.getByIdForUser(10L, 2L, false))
+                .thenThrow(new AccessDeniedException("You can only view your own orders"));
+
+        mockMvc.perform(get("/orders/10"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
     @WithMockUser
     void getOrderTracking_shouldReturnTrackingViewAndModel() throws Exception {
-        when(orderQueryService.getById(10L)).thenReturn(sampleOrderResponse());
+        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
+        when(orderQueryService.getByIdForUser(10L, 1L, false)).thenReturn(sampleOrderResponse());
 
         mockMvc.perform(get("/orders/10/tracking"))
                 .andExpect(status().isOk())

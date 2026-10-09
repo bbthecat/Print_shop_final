@@ -15,6 +15,12 @@ public class QuantityValidationHandler extends OrderValidationHandler {
                         "Quantity must be greater than 0"
                 );
             }
+
+            if (item.getPageCount() == null || item.getPageCount() <= 0) {
+                throw new ValidationException(
+                        "Page count must be greater than 0"
+                );
+            }
         }
     }
 }

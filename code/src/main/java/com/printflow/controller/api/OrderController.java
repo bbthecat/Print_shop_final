@@ -3,6 +3,7 @@ package com.printflow.controller.api;
 import com.printflow.domain.enums.OrderStatus;
 import com.printflow.dto.request.OrderCreateRequest;
 import com.printflow.dto.response.OrderResponse;
+import com.printflow.security.CurrentUserProvider;
 import com.printflow.service.OrderCommandService;
 import com.printflow.service.OrderQueryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,13 +23,16 @@ public class OrderController {
 
     private final OrderCommandService commandService;
     private final OrderQueryService queryService;
+    private final CurrentUserProvider currentUserProvider;
 
     public OrderController(
             OrderCommandService commandService,
-            OrderQueryService queryService
+            OrderQueryService queryService,
+            CurrentUserProvider currentUserProvider
     ) {
         this.commandService = commandService;
         this.queryService = queryService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @GetMapping
@@ -51,20 +55,24 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get order by ID")
+    @Operation(summary = "Get order by ID (customers can only see their own orders)")
     public ResponseEntity<OrderResponse> getById(
             @PathVariable Long id
     ) {
-        return ResponseEntity.ok(queryService.getById(id));
+        return ResponseEntity.ok(queryService.getByIdForUser(
+                id,
+                currentUserProvider.getCurrentUserId(),
+                currentUserProvider.isStaffOrAdmin()
+        ));
     }
 
     @PostMapping
-    @Operation(summary = "Create an order")
+    @Operation(summary = "Create an order for the logged-in user")
     public ResponseEntity<OrderResponse> create(
             @Valid @RequestBody OrderCreateRequest request
     ) {
         return ResponseEntity.ok(
-                commandService.createOrder(request)
+                commandService.createOrder(currentUserProvider.getCurrentUserId(), request)
         );
     }
 
