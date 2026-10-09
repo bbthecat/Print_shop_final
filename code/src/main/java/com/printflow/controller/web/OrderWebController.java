@@ -1,5 +1,7 @@
 package com.printflow.controller.web;
 
+import com.printflow.domain.entity.Payment;
+import com.printflow.domain.enums.PaymentStatus;
 import com.printflow.dto.form.OrderCreateForm;
 import com.printflow.dto.request.OrderCreateRequest;
 import com.printflow.dto.request.OrderItemRequest;
@@ -11,6 +13,7 @@ import com.printflow.security.CurrentUserProvider;
 import com.printflow.service.OrderCommandService;
 import com.printflow.service.OrderQueryService;
 import com.printflow.service.OrderStatusService;
+import com.printflow.service.PaymentService;
 import com.printflow.service.PromotionService;
 import com.printflow.service.ServiceCatalogQueryService;
 import jakarta.validation.Valid;
@@ -39,6 +42,7 @@ public class OrderWebController {
     private final ServiceCatalogQueryService catalogQueryService;
     private final PromotionService promotionService;
     private final CurrentUserProvider currentUserProvider;
+    private final PaymentService paymentService;
 
     // Constructor Injection ตามเกณฑ์ห้าม @Autowired บน field
     // Controller เรียก Service เท่านั้น ห้ามเรียก Repository ตรง
@@ -48,7 +52,8 @@ public class OrderWebController {
             OrderStatusService orderStatusService,
             ServiceCatalogQueryService catalogQueryService,
             PromotionService promotionService,
-            CurrentUserProvider currentUserProvider
+            CurrentUserProvider currentUserProvider,
+            PaymentService paymentService
     ) {
         this.orderQueryService = orderQueryService;
         this.orderCommandService = orderCommandService;
@@ -56,6 +61,7 @@ public class OrderWebController {
         this.catalogQueryService = catalogQueryService;
         this.promotionService = promotionService;
         this.currentUserProvider = currentUserProvider;
+        this.paymentService = paymentService;
     }
 
     @GetMapping("/create")
@@ -142,6 +148,7 @@ public class OrderWebController {
         OrderResponse order = findVisibleOrder(id);
         model.addAttribute("order", order);
         model.addAttribute("files", orderQueryService.getFiles(id));
+        model.addAttribute("paymentStatus", paymentStatusOf(id));
         return "orders/detail";
     }
 
@@ -171,6 +178,16 @@ public class OrderWebController {
                 currentUserProvider.getCurrentUserId(),
                 currentUserProvider.isStaffOrAdmin()
         );
+    }
+
+    // สถานะการชำระเงิน (order เก่าบางตัวอาจยังไม่มี payment)
+    private PaymentStatus paymentStatusOf(Long orderId) {
+        try {
+            Payment payment = paymentService.findByOrderId(orderId);
+            return payment == null ? null : payment.getPaymentStatus();
+        } catch (ResourceNotFoundException ex) {
+            return null;
+        }
     }
 
     private void populateCatalog(Model model) {

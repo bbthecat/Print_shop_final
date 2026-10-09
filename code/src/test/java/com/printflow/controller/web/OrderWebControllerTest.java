@@ -64,6 +64,9 @@ class OrderWebControllerTest {
     @MockBean
     private OrderStatusService orderStatusService;
 
+    @MockBean
+    private com.printflow.service.PaymentService paymentService;
+
     private OrderResponse sampleOrderResponse() {
         OrderItemResponse item = new OrderItemResponse(
                 1L, 1L, "Document B&W (A4)", 20, 2, BigDecimal.valueOf(5.00), BigDecimal.valueOf(10.00),
