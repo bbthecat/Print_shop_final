@@ -60,6 +60,12 @@ package "Validation - Chain of Responsibility" {
         #validate(context: OrderValidationContext): void
     }
 
+    class PromotionUsageLimitHandler {
+        -orderPromotionRepository: OrderPromotionRepository
+        -promotionRepository: PromotionRepository
+        #validate(context: OrderValidationContext): void
+    }
+
     class OrderValidationContext {
         -order: PrintOrder
         -items: List<PrintItem>
@@ -106,6 +112,7 @@ OrderValidationHandler <|-- QuantityValidationHandler
 OrderValidationHandler <|-- ServiceAvailabilityHandler
 OrderValidationHandler <|-- FileTypeValidationHandler
 OrderValidationHandler <|-- PromotionValidityHandler
+OrderValidationHandler <|-- PromotionUsageLimitHandler
 
 OrderValidationHandler o--> "0..1" OrderValidationHandler : next
 OrderCommandServiceImpl --> OrderValidationHandler : validation chain
@@ -126,6 +133,8 @@ OrderCommandServiceImpl --> OrderMapper
 
 ServiceAvailabilityHandler --> ServiceCatalogQueryService
 PromotionValidityHandler --> PromotionRepository
+PromotionUsageLimitHandler --> OrderPromotionRepository
+PromotionUsageLimitHandler --> PromotionRepository
 
 OrderCommandServiceImpl ..> OrderCreateRequest
 OrderCommandServiceImpl ..> OrderItemRequest
