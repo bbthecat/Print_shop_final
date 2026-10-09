@@ -5,10 +5,12 @@ import com.printflow.domain.enums.OrderStatus;
 import com.printflow.mapper.OrderMapper;
 import com.printflow.repository.AddonServiceRepository;
 import com.printflow.repository.OrderFileRepository;
+import com.printflow.repository.OrderPromotionRepository;
 import com.printflow.repository.OrderRepository;
 import com.printflow.repository.PrintItemAddonRepository;
 import com.printflow.repository.PrintItemRepository;
 import com.printflow.repository.PrintServiceRepository;
+import com.printflow.repository.PromotionRepository;
 import com.printflow.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,12 +52,19 @@ class OrderQueryServiceImplTest {
     @Mock
     private OrderFileRepository orderFileRepository;
 
+    @Mock
+    private OrderPromotionRepository orderPromotionRepository;
+
+    @Mock
+    private PromotionRepository promotionRepository;
+
     private OrderQueryServiceImpl orderQueryService;
 
     @BeforeEach
     void setUp() {
         orderQueryService = new OrderQueryServiceImpl(orderRepository, printItemRepository,
-                printItemAddonRepository, printServiceRepository, addonServiceRepository, userRepository, orderFileRepository, new OrderMapper());
+                printItemAddonRepository, printServiceRepository, addonServiceRepository, userRepository, orderFileRepository,
+                orderPromotionRepository, promotionRepository, new OrderMapper());
         // order ของลูกค้า id 7
         when(orderRepository.findById(1L))
                 .thenReturn(Optional.of(new PrintOrder("ORD-1", 7L, OrderStatus.PENDING, BigDecimal.TEN)));

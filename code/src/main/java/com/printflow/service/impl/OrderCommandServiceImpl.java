@@ -38,6 +38,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -89,6 +90,10 @@ public class OrderCommandServiceImpl implements OrderCommandService {
     @Override
     public OrderResponse createOrder(Long userId, OrderCreateRequest request) {
 
+        if (request.items() == null || request.items().isEmpty()) {
+            throw new ValidationException("กรุณาเลือกบริการอย่างน้อย 1 รายการ");
+        }
+
         PrintOrder order = new PrintOrder(
                 generateOrderNumber(),
                 userId,
@@ -97,17 +102,15 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         );
 
         List<PrintItem> itemsToValidate = new ArrayList<>();
-        if (request.items() != null) {
-            for (OrderItemRequest itemRequest : request.items()) {
-                itemsToValidate.add(new PrintItem(
-                        order,
-                        itemRequest.serviceId(),
-                        itemRequest.pageCount(),
-                        itemRequest.quantity(),
-                        BigDecimal.ZERO,
-                        BigDecimal.ZERO
-                ));
-            }
+        for (OrderItemRequest itemRequest : request.items()) {
+            itemsToValidate.add(new PrintItem(
+                    order,
+                    itemRequest.serviceId(),
+                    itemRequest.pageCount(),
+                    itemRequest.quantity(),
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO
+            ));
         }
 
         Promotion promotion = null;
@@ -152,7 +155,8 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             List<AddonService> addons = new ArrayList<>();
 
             if (itemRequest.addonIds() != null) {
-                for (Long addonId : itemRequest.addonIds()) {
+                // ตัด id ซ้ำออก กันคิดเงินบริการเสริมเดียวกันสองครั้ง
+                for (Long addonId : new LinkedHashSet<>(itemRequest.addonIds())) {
                     AddonService addon =
                             serviceCatalogQueryService.findActiveAddonServiceById(
                                     addonId

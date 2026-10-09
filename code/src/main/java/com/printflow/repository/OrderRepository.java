@@ -16,6 +16,8 @@ public interface OrderRepository extends JpaRepository<PrintOrder, Long> {
 
     Page<PrintOrder> findByStatus(OrderStatus status, Pageable pageable);
 
+    long countByStatus(OrderStatus status);
+
     Page<PrintOrder> findByUserIdAndStatus(
             Long userId,
             OrderStatus status,

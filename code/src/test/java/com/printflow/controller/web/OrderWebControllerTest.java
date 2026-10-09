@@ -1,6 +1,8 @@
 package com.printflow.controller.web;
 
 import com.printflow.config.SecurityConfig;
+import com.printflow.domain.entity.Promotion;
+import com.printflow.domain.enums.DiscountType;
 import com.printflow.domain.enums.OrderStatus;
 import com.printflow.dto.response.OrderItemResponse;
 import com.printflow.dto.response.OrderResponse;
@@ -87,6 +89,24 @@ class OrderWebControllerTest {
 
     @Test
     @WithMockUser
+    void showCreateForm_withActivePromotion_rendersPromotionCode() throws Exception {
+        Promotion promo = new Promotion();
+        promo.setCode("WELCOME10");
+        promo.setDiscountType(DiscountType.PERCENTAGE);
+        promo.setDiscountValue(BigDecimal.TEN);
+        promo.setMinOrderAmount(BigDecimal.ZERO);
+        when(catalogQueryService.findAllActivePrintServices()).thenReturn(List.of());
+        when(catalogQueryService.findAllActiveAddonServices()).thenReturn(List.of());
+        when(promotionService.findAllActive()).thenReturn(List.of(promo));
+
+        // Thymeleaf 3.1 ห้ามใส่ string ใน th:onclick ถ้าใช้ผิดหน้านี้จะ error 500
+        mockMvc.perform(get("/orders/create"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-code=\"WELCOME10\"")));
+    }
+
+    @Test
+    @WithMockUser
     void createOrder_shouldRedirectToDetailOnSuccess() throws Exception {
         when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
         when(orderCommandService.createOrder(eq(1L), any())).thenReturn(sampleOrderResponse());
@@ -152,6 +172,14 @@ class OrderWebControllerTest {
 
         mockMvc.perform(get("/orders/10"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser
+    void getOrderDetail_nonNumericId_returns400ErrorPage() throws Exception {
+        mockMvc.perform(get("/orders/abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(view().name("error"));
     }
 
     @Test

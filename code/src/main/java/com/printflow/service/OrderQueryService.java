@@ -21,6 +21,9 @@ public interface OrderQueryService {
 
     Page<OrderResponse> getAll(Pageable pageable);
 
+    // จำนวน order ในสถานะนั้นทั้งหมด (ไม่จำกัดวันที่) เช่น งานที่ยังรอยืนยัน
+    long countByStatus(OrderStatus status);
+
     Page<OrderResponse> getAllByStatus(
             OrderStatus status,
             Pageable pageable

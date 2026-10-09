@@ -6,6 +6,7 @@ import com.printflow.dto.response.OrderItemResponse;
 import com.printflow.dto.response.OrderResponse;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,8 @@ public class OrderMapper {
      * @param serviceNames     ชื่อบริการพิมพ์ (key = serviceId)
      * @param addonNames       ชื่อบริการเสริม (key = addonId)
      * @param customerName     ชื่อผู้ใช้ของลูกค้าเจ้าของ order
+     * @param discountAmount   ส่วนลดจากโปรโมชัน
+     * @param promotionCode    โค้ดโปรโมชันที่ใช้ (null ถ้าไม่ได้ใช้)
      */
     public OrderResponse toResponse(
             PrintOrder order,
@@ -25,7 +28,9 @@ public class OrderMapper {
             Map<Long, List<Long>> addonIdsByItemId,
             Map<Long, String> serviceNames,
             Map<Long, String> addonNames,
-            String customerName
+            String customerName,
+            BigDecimal discountAmount,
+            String promotionCode
     ) {
         List<OrderItemResponse> itemResponses =
                 items == null
@@ -50,7 +55,9 @@ public class OrderMapper {
                 order.getStatus(),
                 order.getTotalPrice(),
                 order.getCreatedAt(),
-                itemResponses
+                itemResponses,
+                discountAmount,
+                promotionCode
         );
     }
 
