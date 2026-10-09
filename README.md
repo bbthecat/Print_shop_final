@@ -8,6 +8,9 @@ PrintFlow เป็นเว็บแอปสำหรับร้านรั�
 
 รายวิชา CP353002 Principles of Software Design and Development
 
+**Deployment URL:** https://printflow-ogm4.onrender.com · Swagger UI: https://printflow-ogm4.onrender.com/swagger-ui.html
+(Render free plan — เปิดครั้งแรกอาจรอ 30–60 วินาที ดูรายละเอียดที่ [Deployment URL](#deployment-url))
+
 ## สมาชิกกลุ่ม
 
 | ลำดับ | ชื่อ-นามสกุล | รหัสนักศึกษา | Section | Branch | หน้าที่รับผิดชอบ |
@@ -195,7 +198,7 @@ mvn clean verify                       # build + รัน test ทั้งห�
 mvn surefire-report:report-only        # สร้างรายงาน HTML ที่ target/reports/surefire.html
 ```
 
-- **234 test ผ่านทั้งหมด** (30+ คลาส) — สรุปผลอยู่ที่ [`test/test-report/`](test/test-report/)
+- **241 test ผ่านทั้งหมด** (30+ คลาส) — สรุปผลอยู่ที่ [`test/test-report/`](test/test-report/)
 - Unit test ของ Service ใช้ JUnit 5 + Mockito (สูตรราคา/ส่วนลดใช้ Strategy ตัวจริง)
 - Test ของ Controller ใช้ `@WebMvcTest` (รวมการทดสอบสิทธิ์ตาม role, ห้ามดูข้อมูลของคนอื่น และ CSRF)
 - Test ของ Repository ใช้ `@DataJpaTest` + H2 (`OrderRepositoryTest`, `ReportRepositoryTest`)
