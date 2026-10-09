@@ -17,8 +17,8 @@
             <div class="stat-value" th:text="${today.totalOrders}">0</div>
         </section>
         <section class="card">
-            <div class="muted">รอร้านยืนยัน</div>
-            <div class="stat-value" th:text="${today.ordersByStatus.get(T(com.printflow.domain.enums.OrderStatus).PENDING)}">0</div>
+            <div class="muted">รอร้านยืนยัน (ทั้งหมด)</div>
+            <div class="stat-value" th:text="${pendingCount}">0</div>
         </section>
         <section class="card">
             <div class="muted">รับชำระวันนี้</div>
