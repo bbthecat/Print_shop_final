@@ -99,6 +99,17 @@ public class AdminPromotionPageController {
         return REDIRECT;
     }
 
+    @PostMapping("/{id}/delete")
+    public String delete(@PathVariable Long id, RedirectAttributes redirect) {
+        try {
+            promotionService.delete(id);
+            redirect.addFlashAttribute("success", "ลบโปรโมชันเรียบร้อยแล้ว");
+        } catch (ValidationException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return REDIRECT;
+    }
+
     @PostMapping("/{id}/activate")
     public String activate(@PathVariable Long id, RedirectAttributes redirect) {
         promotionService.activate(id);
