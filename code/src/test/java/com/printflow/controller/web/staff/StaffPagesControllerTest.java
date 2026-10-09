@@ -125,6 +125,27 @@ class StaffPagesControllerTest {
 
     @Test
     @WithMockUser(roles = "STAFF")
+    void orderDetail_withPromotion_showsDiscountAndCode() throws Exception {
+        OrderResponse base = order(OrderStatus.PENDING);
+        OrderResponse discounted = new OrderResponse(base.id(), base.orderNumber(), base.userId(), base.customerName(),
+                base.status(), new BigDecimal("363.60"), base.createdAt(), base.items(),
+                new BigDecimal("40.40"), "SAVE10");
+        when(orderQueryService.getById(10L)).thenReturn(discounted);
+        when(orderStatusService.getHistories(10L)).thenReturn(List.of());
+        when(orderStatusService.getAllowedNextStatuses(OrderStatus.PENDING)).thenReturn(List.of(OrderStatus.CONFIRMED));
+
+        // 404.00 - 40.40 = 363.60
+        mockMvc.perform(get("/staff/orders/10"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("404.00 บาท")))
+                .andExpect(content().string(containsString("(โค้ด SAVE10)")))
+                .andExpect(content().string(containsString("-40.40 บาท")))
+                .andExpect(content().string(containsString("ยอดสุทธิ:")))
+                .andExpect(content().string(containsString("363.60 บาท")));
+    }
+
+    @Test
+    @WithMockUser(roles = "STAFF")
     void payments_cancelledOrder_hasNoPayButton() throws Exception {
         Payment payment = new Payment(10L, new BigDecimal("32.00"));
         PaymentResponse response = new PaymentResponse(1L, 10L, new BigDecimal("32.00"), null,

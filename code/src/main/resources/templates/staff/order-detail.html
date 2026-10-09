@@ -14,7 +14,14 @@
             <span class="badge" th:classappend="'status-' + ${order.status().name().toLowerCase()}"
                   th:text="${order.status().label}">รอร้านยืนยัน</span></p>
         <p>ลูกค้า: <strong th:text="${order.customerName()}">customer01</strong></p>
-        <p>ยอดรวม: <strong th:text="${#numbers.formatDecimal(order.totalPrice(), 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</strong></p>
+        <th:block th:if="${order.discountAmount() != null and order.discountAmount().signum() > 0}">
+            <p>ยอดก่อนส่วนลด: <span th:text="${#numbers.formatDecimal(order.subtotal(), 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</span></p>
+            <p>ส่วนลด<span th:if="${order.promotionCode() != null}" th:text="' (โค้ด ' + ${order.promotionCode()} + ')'"> (โค้ด CODE)</span>:
+                <span style="color: var(--success-text);"
+                      th:text="'-' + ${#numbers.formatDecimal(order.discountAmount(), 1, 'COMMA', 2, 'POINT')} + ' บาท'">-0.00 บาท</span></p>
+        </th:block>
+        <p><span th:text="${order.discountAmount() != null and order.discountAmount().signum() > 0} ? 'ยอดสุทธิ:' : 'ยอดรวม:'">ยอดรวม:</span>
+            <strong th:text="${#numbers.formatDecimal(order.totalPrice(), 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</strong></p>
         <p>วันที่สั่ง: <span th:text="${#temporals.format(order.createdAt(), 'dd/MM/yyyy HH:mm')}">-</span></p>
     </div>
 
