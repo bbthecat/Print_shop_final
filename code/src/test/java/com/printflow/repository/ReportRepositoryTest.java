@@ -68,7 +68,7 @@ class ReportRepositoryTest {
     private PrintOrder order(String number, OrderStatus status, PrintService service, int quantity) {
         BigDecimal subtotal = BigDecimal.valueOf(quantity);
         PrintOrder order = em.persist(new PrintOrder(number, userId, status, subtotal));
-        em.persist(new PrintItem(order, service.getId(), quantity, BigDecimal.ONE, subtotal));
+        em.persist(new PrintItem(order, service.getId(), 1, quantity, BigDecimal.ONE, subtotal));
         return order;
     }
 

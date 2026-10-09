@@ -20,21 +20,25 @@
     <table class="card">
         <thead>
         <tr>
-            <th>service id</th>
-            <th>จำนวน</th>
-            <th>ราคา/หน่วย</th>
+            <th>บริการ</th>
+            <th>บริการเสริม</th>
+            <th>หน้า/ชุด</th>
+            <th>จำนวนชุด</th>
+            <th>ราคา/ชุด</th>
             <th>รวม</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="item : ${order.items()}">
-            <td th:text="${item.serviceId()}">-</td>
+            <td th:text="${item.serviceName()}">-</td>
+            <td th:text="${item.addonNames().isEmpty()} ? '-' : ${#strings.listJoin(item.addonNames(), ', ')}">-</td>
+            <td th:text="${item.pageCount()}">1</td>
             <td th:text="${item.quantity()}">0</td>
             <td th:text="${item.unitPrice()}">0.00</td>
             <td th:text="${item.subtotal()}">0.00</td>
         </tr>
         <tr th:if="${order.items().isEmpty()}">
-            <td colspan="4" class="text-center muted">ไม่มีรายการ</td>
+            <td colspan="6" class="text-center muted">ไม่มีรายการ</td>
         </tr>
         </tbody>
     </table>

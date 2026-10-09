@@ -5,7 +5,8 @@ import com.printflow.dto.response.OrderResponse;
 
 public interface OrderCommandService {
 
-    OrderResponse createOrder(OrderCreateRequest request);
+    // userId = คนที่ login อยู่ (ไม่รับจาก request เพื่อไม่ให้สั่งในชื่อคนอื่นได้)
+    OrderResponse createOrder(Long userId, OrderCreateRequest request);
 
     void deleteOrder(Long id);
 }

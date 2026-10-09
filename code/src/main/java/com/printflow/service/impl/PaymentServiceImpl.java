@@ -4,7 +4,9 @@ import com.printflow.domain.entity.Payment;
 import com.printflow.domain.entity.PrintOrder;
 import com.printflow.domain.enums.PaymentMethod;
 import com.printflow.domain.enums.PaymentStatus;
+import com.printflow.domain.enums.OrderStatus;
 import com.printflow.exception.DuplicateResourceException;
+import com.printflow.exception.InvalidStateTransitionException;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.repository.OrderRepository;
 import com.printflow.repository.PaymentRepository;
@@ -43,6 +45,14 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentRepository.save(new Payment(orderId, order.getTotalPrice()));
     }
 
+    // เช็กก่อนสร้าง แทนการ catch DuplicateResourceException
+    // (ถ้า exception หลุดออกจาก method @Transactional จะทำให้ transaction ทั้งก้อนถูก rollback)
+    @Override
+    public Payment createUnpaidIfAbsent(Long orderId) {
+        return paymentRepository.findByOrderId(orderId)
+                .orElseGet(() -> createUnpaid(orderId));
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Payment findByOrderId(Long orderId) {
@@ -53,6 +63,14 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public Payment markAsPaid(Long orderId, PaymentMethod method) {
+        PrintOrder order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+
+        // งานที่ยกเลิกแล้วรับชำระไม่ได้ ไม่งั้นรายงานยอดขายจะนับเงินของงานที่ยกเลิก
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new InvalidStateTransitionException("Cannot pay a cancelled order: " + orderId);
+        }
+
         Payment payment = findByOrderId(orderId);
         payment.setPaymentMethod(method);
         payment.setPaymentStatus(PaymentStatus.PAID);
