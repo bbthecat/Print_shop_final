@@ -5,10 +5,10 @@
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <main class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1 style="margin: 0;">จัดการบริการและบริการเสริม (Admin)</h1>
+    <div class="page-header">
         <div>
-            <a th:href="@{/admin/promotions}" class="btn btn-secondary">จัดการโปรโมชัน →</a>
+            <h1>บริการและราคา</h1>
+            <p class="lead">ราคาที่ตั้งที่นี่แสดงบนหน้าแรกและใช้คิดเงินตอนลูกค้าสั่งงานทันที</p>
         </div>
     </div>
 
@@ -68,7 +68,7 @@
                     <th>ประเภทราคา</th>
                     <th style="text-align: right;">ราคาเริ่มต้น</th>
                     <th>สถานะ</th>
-                    <th style="text-align: center;">จัดการ</th>
+                    <th class="num">จัดการ</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -82,7 +82,8 @@
                         <span th:if="${svc.active}" class="badge badge-success">เปิดใช้งาน</span>
                         <span th:unless="${svc.active}" class="badge badge-muted">ปิดใช้งาน</span>
                     </td>
-                    <td style="text-align: center;">
+                    <td>
+                        <div class="actions">
                         <a class="btn btn-small" th:href="@{/admin/services/{id}/edit(id=${svc.id})}">แก้ไข</a>
                         <form th:if="${svc.active}" th:action="@{/admin/services/{id}/deactivate(id=${svc.id})}" method="post" style="display: inline;">
                             <button type="submit" class="btn btn-small btn-secondary" onclick="return confirm('ต้องการปิดการใช้งานบริการนี้หรือไม่?')">ปิดใช้งาน</button>
@@ -90,6 +91,7 @@
                         <form th:unless="${svc.active}" th:action="@{/admin/services/{id}/activate(id=${svc.id})}" method="post" style="display: inline;">
                             <button type="submit" class="btn btn-small">เปิดใช้งาน</button>
                         </form>
+                        </div>
                     </td>
                 </tr>
                 <tr th:if="${services == null or services.isEmpty()}">
@@ -144,7 +146,7 @@
                     <th>รายละเอียด</th>
                     <th style="text-align: right;">ราคา</th>
                     <th>สถานะ</th>
-                    <th style="text-align: center;">จัดการ</th>
+                    <th class="num">จัดการ</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -158,7 +160,8 @@
                         <span th:if="${addon.active}" class="badge badge-success">เปิดใช้งาน</span>
                         <span th:unless="${addon.active}" class="badge badge-muted">ปิดใช้งาน</span>
                     </td>
-                    <td style="text-align: center;">
+                    <td>
+                        <div class="actions">
                         <a class="btn btn-small" th:href="@{/admin/services/addons/{id}/edit(id=${addon.id})}">แก้ไข</a>
                         <form th:if="${addon.active}" th:action="@{/admin/services/addons/{id}/deactivate(id=${addon.id})}" method="post" style="display: inline;">
                             <button type="submit" class="btn btn-small btn-secondary" onclick="return confirm('ต้องการปิดการใช้งานบริการเสริมนี้หรือไม่?')">ปิดใช้งาน</button>
@@ -166,6 +169,7 @@
                         <form th:unless="${addon.active}" th:action="@{/admin/services/addons/{id}/activate(id=${addon.id})}" method="post" style="display: inline;">
                             <button type="submit" class="btn btn-small">เปิดใช้งาน</button>
                         </form>
+                        </div>
                     </td>
                 </tr>
                 <tr th:if="${addons == null or addons.isEmpty()}">
