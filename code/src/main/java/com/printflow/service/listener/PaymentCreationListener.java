@@ -1,6 +1,5 @@
 package com.printflow.service.listener;
 
-import com.printflow.exception.DuplicateResourceException;
 import com.printflow.service.PaymentService;
 import com.printflow.service.event.OrderCreatedEvent;
 import org.springframework.context.event.EventListener;
@@ -17,10 +16,6 @@ public class PaymentCreationListener {
 
     @EventListener
     public void onOrderCreated(OrderCreatedEvent event) {
-        try {
-            paymentService.createUnpaid(event.orderId());
-        } catch (DuplicateResourceException ex) {
-            // payment มีอยู่แล้ว ไม่ต้องสร้างซ้ำ
-        }
+        paymentService.createUnpaidIfAbsent(event.orderId());
     }
 }
