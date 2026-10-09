@@ -29,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -105,7 +106,29 @@ class OrderWebControllerTest {
         // Thymeleaf 3.1 ห้ามใส่ string ใน th:onclick ถ้าใช้ผิดหน้านี้จะ error 500
         mockMvc.perform(get("/orders/create"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("data-code=\"WELCOME10\"")));
+                .andExpect(content().string(containsString("data-code=\"WELCOME10\"")))
+                .andExpect(content().string(not(containsString("ใช้แล้ว</span>"))));
+    }
+
+    @Test
+    @WithMockUser
+    void showCreateForm_promotionAlreadyUsed_isMarkedAndDisabled() throws Exception {
+        Promotion promo = new Promotion();
+        promo.setId(5L);
+        promo.setCode("WELCOME10");
+        promo.setDiscountType(DiscountType.PERCENTAGE);
+        promo.setDiscountValue(BigDecimal.TEN);
+        promo.setMinOrderAmount(BigDecimal.ZERO);
+        when(currentUserProvider.getCurrentUserId()).thenReturn(1L);
+        when(orderQueryService.getUsedPromotionIds(1L)).thenReturn(java.util.Set.of(5L));
+        when(catalogQueryService.findAllActivePrintServices()).thenReturn(List.of());
+        when(catalogQueryService.findAllActiveAddonServices()).thenReturn(List.of());
+        when(promotionService.findAllActive()).thenReturn(List.of(promo));
+
+        mockMvc.perform(get("/orders/create"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("ใช้แล้ว</span>")))
+                .andExpect(content().string(containsString("disabled=\"disabled\"")));
     }
 
     @Test

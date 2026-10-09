@@ -1,9 +1,11 @@
 package com.printflow.config;
 
+import com.printflow.repository.OrderPromotionRepository;
 import com.printflow.repository.PromotionRepository;
 import com.printflow.service.ServiceCatalogQueryService;
 import com.printflow.validation.FileTypeValidationHandler;
 import com.printflow.validation.OrderValidationHandler;
+import com.printflow.validation.PromotionUsageLimitHandler;
 import com.printflow.validation.PromotionValidityHandler;
 import com.printflow.validation.QuantityValidationHandler;
 import com.printflow.validation.ServiceAvailabilityHandler;
@@ -16,7 +18,8 @@ public class OrderValidationChainConfig {
     @Bean
     public OrderValidationHandler orderValidationChain(
             ServiceCatalogQueryService serviceCatalogQueryService,
-            PromotionRepository promotionRepository
+            PromotionRepository promotionRepository,
+            OrderPromotionRepository orderPromotionRepository
     ) {
 
         OrderValidationHandler serviceAvailability =
@@ -31,10 +34,14 @@ public class OrderValidationChainConfig {
         OrderValidationHandler promotion =
                 new PromotionValidityHandler(promotionRepository);
 
+        OrderValidationHandler promotionUsageLimit =
+                new PromotionUsageLimitHandler(orderPromotionRepository, promotionRepository);
+
         serviceAvailability
                 .setNext(fileType)
                 .setNext(quantity)
-                .setNext(promotion);
+                .setNext(promotion)
+                .setNext(promotionUsageLimit);
 
         return serviceAvailability;
     }
