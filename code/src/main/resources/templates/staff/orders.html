@@ -21,32 +21,52 @@
         <button type="submit" class="btn btn-small">กรอง</button>
     </form>
 
+    <form id="advanceForm" th:action="@{/staff/orders/advance}" method="post"
+          onsubmit="return confirm('เลื่อนคำสั่งซื้อที่เลือกไปสถานะถัดไปใช่ไหม?')">
+        <input type="hidden" name="status" th:value="${selectedStatus}" th:if="${selectedStatus != null}">
+        <input type="hidden" name="page" th:value="${orders.number}">
+        <div class="inline-controls" style="margin: 12px 0;">
+            <button type="submit" id="advanceButton" class="btn btn-small" disabled>
+                เลื่อนไปสถานะถัดไป (<span id="selectedCount">0</span> รายการ)
+            </button>
+            <small class="muted">ติ๊กเลือกได้หลายรายการ แต่ละรายการจะไปขั้นถัดไปของตัวเอง (ยกเลิกต้องทำทีละรายการในหน้ารายละเอียด)</small>
+        </div>
+    </form>
+
     <section class="card table-scroll">
         <table>
             <thead>
             <tr>
+                <th><input type="checkbox" id="selectAll" aria-label="เลือกทั้งหมด" form="advanceForm"></th>
                 <th>เลขที่</th>
                 <th>ลูกค้า</th>
                 <th>สถานะ</th>
                 <th>ยอดรวม (บาท)</th>
                 <th>วันที่สั่ง</th>
+                <th>ขั้นถัดไป</th>
                 <th></th>
             </tr>
             </thead>
             <tbody>
-            <tr th:each="order : ${orders.content}">
+            <tr th:each="order : ${orders.content}" th:with="next=${nextStatusById.get(order.id())}">
+                <td>
+                    <input type="checkbox" name="orderIds" class="order-check" form="advanceForm"
+                           th:value="${order.id()}" th:disabled="${next == null}"
+                           th:aria-label="'เลือก ' + ${order.orderNumber()}">
+                </td>
                 <td th:text="${order.orderNumber()}">ORD-001</td>
                 <td th:text="${order.customerName()}">customer01</td>
                 <td><span class="badge" th:classappend="'status-' + ${order.status().name().toLowerCase()}"
                           th:text="${order.status().label}">รอร้านยืนยัน</span></td>
                 <td th:text="${#numbers.formatDecimal(order.totalPrice(), 1, 'COMMA', 2, 'POINT')}">0.00</td>
                 <td th:text="${#temporals.format(order.createdAt(), 'dd/MM/yyyy HH:mm')}">-</td>
+                <td th:text="${next != null} ? '→ ' + ${next.label} : '-'" class="muted">→ ร้านรับงานแล้ว</td>
                 <td>
                     <a class="btn btn-small" th:href="@{/staff/orders/{id}(id=${order.id()})}">ดูรายละเอียด</a>
                 </td>
             </tr>
             <tr th:if="${orders.isEmpty()}">
-                <td colspan="6" class="text-center muted">ไม่มีคำสั่งซื้อ</td>
+                <td colspan="8" class="text-center muted">ไม่มีคำสั่งซื้อ</td>
             </tr>
             </tbody>
         </table>
@@ -62,5 +82,29 @@
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
+<script>
+    // นับรายการที่ติ๊ก + ปุ่มเลือกทั้งหมด
+    (function () {
+        const checks = Array.from(document.querySelectorAll('.order-check:not([disabled])'));
+        const selectAll = document.getElementById('selectAll');
+        const button = document.getElementById('advanceButton');
+        const count = document.getElementById('selectedCount');
+
+        function refresh() {
+            const selected = checks.filter(c => c.checked).length;
+            count.textContent = selected;
+            button.disabled = selected === 0;
+            selectAll.checked = selected > 0 && selected === checks.length;
+        }
+
+        selectAll.disabled = checks.length === 0;
+        selectAll.addEventListener('change', function () {
+            checks.forEach(c => c.checked = selectAll.checked);
+            refresh();
+        });
+        checks.forEach(c => c.addEventListener('change', refresh));
+        refresh();
+    })();
+</script>
 </body>
 </html>

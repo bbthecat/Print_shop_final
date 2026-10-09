@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -115,6 +116,13 @@ public class OrderStatusServiceImpl implements OrderStatusService {
             }
         }
         return allowed;
+    }
+
+    @Override
+    public Optional<OrderStatus> getNextStatus(OrderStatus current) {
+        return getAllowedNextStatuses(current).stream()
+                .filter(status -> status != OrderStatus.CANCELLED)
+                .findFirst();
     }
 
     private OrderStatus applyAction(OrderState state, OrderStatus target) {

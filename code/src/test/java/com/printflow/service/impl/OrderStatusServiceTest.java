@@ -151,4 +151,15 @@ class OrderStatusServiceTest {
                 service.getAllowedNextStatuses(OrderStatus.READY));
         assertEquals(List.of(), service.getAllowedNextStatuses(OrderStatus.COMPLETED));
     }
+
+    @Test
+    @DisplayName("ขั้นถัดไปแบบเดินหน้าไม่รวมการยกเลิก")
+    void nextStatusIsForwardStepOnly() {
+        assertEquals(java.util.Optional.of(OrderStatus.CONFIRMED), service.getNextStatus(OrderStatus.PENDING));
+        assertEquals(java.util.Optional.of(OrderStatus.PROCESSING), service.getNextStatus(OrderStatus.CONFIRMED));
+        assertEquals(java.util.Optional.of(OrderStatus.READY), service.getNextStatus(OrderStatus.PROCESSING));
+        assertEquals(java.util.Optional.of(OrderStatus.COMPLETED), service.getNextStatus(OrderStatus.READY));
+        assertEquals(java.util.Optional.empty(), service.getNextStatus(OrderStatus.COMPLETED));
+        assertEquals(java.util.Optional.empty(), service.getNextStatus(OrderStatus.CANCELLED));
+    }
 }
