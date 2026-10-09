@@ -38,6 +38,10 @@ public class PaymentServiceImpl implements PaymentService {
         PrintOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
 
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new InvalidStateTransitionException("Cannot create a payment for a cancelled order: " + orderId);
+        }
+
         paymentRepository.findByOrderId(orderId).ifPresent(existing -> {
             throw new DuplicateResourceException("Payment already exists for order: " + orderId);
         });

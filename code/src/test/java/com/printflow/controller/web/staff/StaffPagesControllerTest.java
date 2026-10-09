@@ -43,6 +43,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @WebMvcTest({StaffDashboardController.class, StaffOrderDetailPageController.class, StaffPaymentPageController.class})
@@ -98,10 +99,12 @@ class StaffPagesControllerTest {
     void dashboard_asStaff_showsPendingCount() throws Exception {
         when(reportService.getSummary(any(), any())).thenReturn(summary());
         when(reportService.getSummary(isNull(), isNull())).thenReturn(summary());
+        when(orderQueryService.countByStatus(OrderStatus.PENDING)).thenReturn(7L);
 
         mockMvc.perform(get("/staff/dashboard"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("staff/dashboard"))
+                .andExpect(model().attribute("pendingCount", 7L))
                 .andExpect(content().string(containsString("รอร้านยืนยัน")));
     }
 
