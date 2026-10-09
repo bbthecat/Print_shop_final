@@ -18,9 +18,11 @@ public record PromotionRequest(
 
         @NotNull(message = "Discount value is required")
         @DecimalMin(value = "0.01", message = "Discount value must be greater than 0")
+        @Digits(integer = 8, fraction = 2, message = "Amount must have at most 8 digits and 2 decimals")
         BigDecimal discountValue,
 
         @DecimalMin(value = "0.00", inclusive = true, message = "Minimum order amount must be greater than or equal to 0")
+        @Digits(integer = 8, fraction = 2, message = "Amount must have at most 8 digits and 2 decimals")
         BigDecimal minOrderAmount,
 
         @NotNull(message = "Start date is required")

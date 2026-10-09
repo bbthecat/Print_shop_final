@@ -9,6 +9,7 @@
         <h1 th:text="'แก้ไขโปรโมชัน ' + ${form.code}">แก้ไขโปรโมชัน</h1>
 
         <form th:action="@{/admin/promotions/{id}/edit(id=${promotionId})}" th:object="${form}" method="post" novalidate>
+            <div class="alert alert-error" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
             <!-- รหัสโปรโมชันแก้ไม่ได้ (ลูกค้าอาจใช้รหัสนี้อยู่แล้ว) -->
             <input type="hidden" th:field="*{code}">
 

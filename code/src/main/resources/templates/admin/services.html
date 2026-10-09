@@ -43,7 +43,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="basePrice">ราคาเริ่มต้น (บาท/หน้า)</label>
-                        <input th:field="*{basePrice}" type="number" step="0.25" placeholder="1.50"
+                        <input th:field="*{basePrice}" type="number" step="0.01" placeholder="1.50"
                                th:classappend="${#fields.hasErrors('basePrice')} ? 'invalid'">
                         <div class="field-error" th:if="${#fields.hasErrors('basePrice')}" th:errors="*{basePrice}"></div>
                     </div>
@@ -118,7 +118,7 @@
                     </div>
                     <div class="form-group">
                         <label for="price">ราคา (บาท)</label>
-                        <input th:field="*{price}" type="number" step="0.50" placeholder="25.00"
+                        <input th:field="*{price}" type="number" step="0.01" placeholder="25.00"
                                th:classappend="${#fields.hasErrors('price')} ? 'invalid'">
                         <div class="field-error" th:if="${#fields.hasErrors('price')}" th:errors="*{price}"></div>
                     </div>
