@@ -90,6 +90,8 @@ class OrderControllerTest {
                         2,
                         List.of()
                 )),
+                null,
+                "report.pdf",
                 null
         );
 
@@ -123,6 +125,7 @@ class OrderControllerTest {
                 1L,
                 "ORD-TEST-001",
                 1L,
+                "customer01",
                 OrderStatus.PENDING,
                 BigDecimal.valueOf(100),
                 LocalDateTime.now(),

@@ -13,6 +13,7 @@ public record OrderResponse(
         String orderNumber,
 
         Long userId,
+        String customerName,
 
         OrderStatus status,
 
@@ -20,7 +21,20 @@ public record OrderResponse(
 
         LocalDateTime createdAt,
 
-        List<OrderItemResponse> items
+        List<OrderItemResponse> items,
+
+        // ส่วนลดจากโปรโมชัน (0 ถ้าไม่ได้ใช้โค้ด)
+        BigDecimal discountAmount,
+        String promotionCode
 
 ) {
+    public OrderResponse(Long id, String orderNumber, Long userId, String customerName, OrderStatus status,
+                         BigDecimal totalPrice, LocalDateTime createdAt, List<OrderItemResponse> items) {
+        this(id, orderNumber, userId, customerName, status, totalPrice, createdAt, items, BigDecimal.ZERO, null);
+    }
+
+    // ยอดก่อนหักส่วนลด
+    public BigDecimal subtotal() {
+        return totalPrice.add(discountAmount);
+    }
 }

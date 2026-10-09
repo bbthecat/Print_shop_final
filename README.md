@@ -30,7 +30,7 @@ PrintFlow เป็นเว็บแอปสำหรับร้านรั�
 | Frontend | Thymeleaf + Thymeleaf Extras Spring Security 6 |
 | API Docs | springdoc-openapi 2.2.0 (Swagger UI) |
 | Security | Spring Security (Form Login + HTTP Basic, BCrypt, Role-based) |
-| Testing | JUnit 5, Mockito, Spring Boot Test (`@WebMvcTest`) |
+| Testing | JUnit 5, Mockito, Spring Boot Test (`@WebMvcTest`, `@DataJpaTest`, `@SpringBootTest` + H2) |
 | Container | Docker (multi-stage build), Docker Compose |
 | CI/CD | GitHub Actions (Build → Test → Deploy) |
 | Hosting | Render (Web Service, Docker) |
@@ -43,6 +43,7 @@ PrintFlow เป็นเว็บแอปสำหรับร้านรั�
 Presentation   controller/api (REST, JSON)  ·  controller/web (Thymeleaf)
       ↓
 Service        service/ (interface)  ·  service/impl  ·  service/strategy  ·  service/state
+               service/event + service/listener (Observer)  ·  validation/ (Chain of Responsibility)
       ↓
 Repository     repository/ (Spring Data JPA)
       ↓
@@ -58,16 +59,28 @@ Diagram อื่นๆ อยู่ใน [`doc/diagrams/`](doc/diagrams/) แ�
 
 ## Database Design (ER Diagram)
 
-> ER Diagram และ Data Dictionary ฉบับเต็ม (13 ตาราง) — จัดทำโดย P2: `doc/diagrams/` และ `doc/data-dictionary.md`
+![ER Diagram](doc/diagrams/er-diagram.png)
+
+> ER Diagram และ Data Dictionary ฉบับเต็ม (13 ตาราง) — จัดทำโดย P2: [`doc/diagrams/er-diagram.md`](doc/diagrams/er-diagram.md) และ [`doc/data-dictionary.md`](doc/data-dictionary.md)
 
 | ตาราง | เจ้าของ | ความสัมพันธ์หลัก |
 |---|---|---|
 | `users`, `user_profiles` | P1 | User 1:1 UserProfile |
 | `print_services`, `addon_services`, `promotions` | P2 | ข้อมูลหลักของบริการและโปรโมชั่น |
-| `print_orders`, `print_items`, `print_item_addons`, `order_promotions`, `files` | P3 | User 1:N Order, Order 1:N Item, Item M:N Addon, Order M:N Promotion |
+| `print_orders`, `print_items`, `print_item_addons`, `order_promotions`, `order_files` | P3 | User 1:N Order, Order 1:N Item, Item M:N Addon, Order M:N Promotion, Order 1:N File |
 | `payments`, `order_status_histories`, `notifications` | P4 | Order 1:1 Payment, Order 1:N History |
 
-Schema ถูกสร้างด้วย Flyway จาก `code/src/main/resources/db/migration/` (V1–V5)
+Schema ถูกสร้างด้วย Flyway จาก `code/src/main/resources/db/migration/` (V1–V7)
+
+| Migration | เนื้อหา |
+|---|---|
+| V1 | users, user_profiles |
+| V2 | print_services, addon_services, promotions |
+| V3 | print_orders, print_items, print_item_addons, order_promotions, order_files |
+| V4 | payments, order_status_histories, notifications |
+| V5 | ข้อมูลตั้งต้น (บริการ บริการเสริม โปรโมชัน) |
+| V6 | `print_items.page_count` (จำนวนหน้าต่อชุด) |
+| V7 | เติม payment ให้ order เก่าที่ยังไม่มี |
 
 ## Installation & Setup
 
@@ -132,7 +145,26 @@ mvn spring-boot:run
 | | `POST /api/v1/addon-services` · `PUT`, `DELETE /api/v1/addon-services/{id}` | ADMIN |
 | Promotions | `GET /api/v1/promotions` · `GET /api/v1/promotions/{id}` · `GET /api/v1/promotions/validate/{code}` | ผู้ที่ login |
 | | `POST /api/v1/promotions` · `DELETE /api/v1/promotions/{id}` | ADMIN |
-| Orders, Status, Payment, Notifications | (P3, P4 — กำลังพัฒนา) | |
+| Orders | `POST /api/v1/orders` (สร้างในชื่อคนที่ login) | ผู้ที่ login |
+| | `GET /api/v1/orders/{id}` · `GET /{id}/items` · `GET /{id}/files` | เจ้าของ order, STAFF, ADMIN |
+| | `GET /api/v1/orders?status=PENDING&page=0&size=10` | STAFF, ADMIN |
+| | `DELETE /api/v1/orders/{id}` (เฉพาะ PENDING) | ADMIN |
+| Order Status | `POST /api/v1/orders/{id}/cancel` (ลูกค้ายกเลิกเองตอน PENDING) | เจ้าของ order |
+| | `GET /api/v1/orders/{id}/status-histories` | เจ้าของ order, STAFF, ADMIN |
+| | `PATCH /api/v1/orders/{id}/status` | STAFF, ADMIN |
+| Payment | `GET /api/v1/orders/{id}/payment` | เจ้าของ order, STAFF, ADMIN |
+| | `POST`, `PATCH /api/v1/orders/{id}/payment` (สร้าง / บันทึกว่าชำระแล้ว) | STAFF, ADMIN |
+| Notifications | `GET /api/v1/notifications` · `GET /unread-count` · `PATCH /{id}/read` | ผู้ที่ login (เห็นเฉพาะของตัวเอง) |
+| Reports | `GET /api/v1/reports/summary?from=2026-10-01&to=2026-10-31` | ADMIN |
+
+**หน้าเว็บหลัก (Thymeleaf)**
+
+| บทบาท | หน้า |
+|---|---|
+| ทุกคน | `/` หน้าแรก · `/services` บริการ · `/login` · `/register` |
+| ลูกค้า | `/orders/create` สั่งพิมพ์ · `/orders` ประวัติ · `/orders/{id}` รายละเอียด/ยกเลิก · `/orders/{id}/tracking` · `/notifications` · `/profile` |
+| พนักงาน | `/staff/dashboard` · `/staff/orders` · `/staff/orders/{id}` เปลี่ยนสถานะ · `/staff/payments` |
+| ผู้ดูแลระบบ | `/admin/services` · `/admin/promotions` · `/admin/users` · `/admin/reports` (+ ทุกหน้าของพนักงาน) |
 
 **รูปแบบ Error มาตรฐาน** (จาก `GlobalExceptionHandler`)
 ```json
@@ -163,17 +195,20 @@ mvn clean verify                       # build + รัน test ทั้งห�
 mvn surefire-report:report-only        # สร้างรายงาน HTML ที่ target/reports/surefire.html
 ```
 
-- Unit test ของ Service ใช้ JUnit 5 + Mockito
-- Test ของ Controller ใช้ `@WebMvcTest` (รวมการทดสอบสิทธิ์ตาม role และ CSRF)
+- **234 test ผ่านทั้งหมด** (30+ คลาส) — สรุปผลอยู่ที่ [`test/test-report/`](test/test-report/)
+- Unit test ของ Service ใช้ JUnit 5 + Mockito (สูตรราคา/ส่วนลดใช้ Strategy ตัวจริง)
+- Test ของ Controller ใช้ `@WebMvcTest` (รวมการทดสอบสิทธิ์ตาม role, ห้ามดูข้อมูลของคนอื่น และ CSRF)
+- Test ของ Repository ใช้ `@DataJpaTest` + H2 (`OrderRepositoryTest`, `ReportRepositoryTest`)
+- Integration test `ObserverIntegrationTest` (`@SpringBootTest` + H2) ทดสอบ flow จริง: สร้าง order → ยืนยัน → ชำระเงิน → ยกเลิก
 - GitHub Actions รัน test ทุกครั้งที่ push / เปิด PR เข้า `develop` และ `main` และเก็บ test report เป็น artifact
-- Test report ฉบับส่งงานจะอยู่ที่ `test/test-report/` (สร้างหลัง code freeze)
 
 ## Deployment URL
 
 - **App:** https://printflow-ogm4.onrender.com
 - **Swagger UI:** https://printflow-ogm4.onrender.com/swagger-ui.html
 - **Hosting:** Render (Docker, Singapore) + Neon PostgreSQL (Singapore)
-- **CI/CD:** GitHub Actions — `mvn clean verify` ทุก push/PR และสั่ง deploy อัตโนมัติเมื่อ merge เข้า `main`
+- **CI/CD:** GitHub Actions — `mvn clean verify` ทุก push/PR · merge เข้า `main` (release) จะสั่ง deploy ผ่าน Render Deploy Hook
+- Branch ที่ deploy กำหนดใน `render.yaml` (ระหว่างพัฒนาใช้ `develop`, หลัง release v1.0 ใช้ `main`)
 - หมายเหตุ: Render free plan จะหลับเมื่อไม่มีการใช้งาน ~15 นาที การเปิดครั้งแรกอาจใช้เวลา 30–60 วินาที
 
 ![Deployment Diagram](doc/diagrams/deployment.png)
@@ -203,14 +238,15 @@ Print_shop_final/
 │       │   ├── mapper/             # Entity ↔ DTO
 │       │   ├── repository/         # Spring Data JPA
 │       │   ├── security/           # UserDetails, CurrentUserProvider
-│       │   └── service/            # interface + impl, strategy/, state/
+│       │   ├── service/            # interface + impl, strategy/, state/, event/, listener/
+│       │   └── validation/         # Chain of Responsibility (ตรวจคำสั่งพิมพ์)
 │       ├── main/resources/
 │       │   ├── application.yml, application-prod.yml
 │       │   ├── db/migration/       # Flyway V1..Vn
 │       │   ├── templates/          # Thymeleaf
 │       │   └── static/css/
-│       └── test/java/              # JUnit 5 + Mockito + WebMvcTest
-├── test/                           # Test report
+│       └── test/java/              # JUnit 5 + Mockito + WebMvcTest + DataJpaTest
+├── test/test-report/               # สรุปผลการทดสอบ + surefire report
 ├── doc/                            # เอกสาร, diagrams/, slide/
 ├── img/                            # ไฟล์มัลติมีเดีย
 ├── render.yaml                     # Render Blueprint

@@ -7,6 +7,7 @@ import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.exception.ValidationException;
 import com.printflow.repository.PromotionRepository;
 import com.printflow.service.PromotionService;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,7 +56,12 @@ public class PromotionServiceImpl implements PromotionService {
     @Override
     @Transactional(readOnly = true)
     public List<Promotion> findAllActive() {
-        return promotionRepository.findAllByActiveTrue();
+        // แสดงลูกค้าเฉพาะโปรที่เปิดอยู่และอยู่ในช่วงวันที่ใช้ได้ตอนนี้
+        LocalDateTime now = LocalDateTime.now();
+        return promotionRepository.findAllByActiveTrue().stream()
+                .filter(p -> p.getStartDate() == null || !p.getStartDate().isAfter(now))
+                .filter(p -> p.getEndDate() == null || !p.getEndDate().isBefore(now))
+                .toList();
     }
 
     @Override
@@ -66,9 +72,7 @@ public class PromotionServiceImpl implements PromotionService {
         if (code == null || code.trim().isEmpty()) {
             throw new ValidationException("Promotion code is required");
         }
-        if (discountType == DiscountType.PERCENTAGE && discountValue != null && discountValue.compareTo(new BigDecimal("100")) > 0) {
-            throw new ValidationException("Percentage discount value cannot exceed 100%");
-        }
+        validateRules(discountType, discountValue, startDate, endDate);
 
         String normalizedCode = code.trim().toUpperCase();
         if (promotionRepository.existsByCode(normalizedCode)) {
@@ -94,5 +98,48 @@ public class PromotionServiceImpl implements PromotionService {
         Promotion promo = findById(id);
         promo.setActive(false);
         promotionRepository.save(promo);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Promotion> findAll() {
+        return promotionRepository.findAll(Sort.by("id"));
+    }
+
+    @Override
+    @Transactional
+    public Promotion update(Long id, String description, DiscountType discountType,
+                            BigDecimal discountValue, BigDecimal minOrderAmount,
+                            LocalDateTime startDate, LocalDateTime endDate) {
+        validateRules(discountType, discountValue, startDate, endDate);
+
+        Promotion promo = findById(id);
+        promo.setDescription(description);
+        promo.setDiscountType(discountType);
+        promo.setDiscountValue(discountValue);
+        promo.setMinOrderAmount(minOrderAmount != null ? minOrderAmount : BigDecimal.ZERO);
+        promo.setStartDate(startDate);
+        promo.setEndDate(endDate);
+        return promotionRepository.save(promo);
+    }
+
+    @Override
+    @Transactional
+    public void activate(Long id) {
+        Promotion promo = findById(id);
+        promo.setActive(true);
+        promotionRepository.save(promo);
+    }
+
+    // กฎที่ต้องตรวจทั้งตอนสร้างและแก้ไข (ทั้งจาก API และหน้าเว็บ)
+    private void validateRules(DiscountType discountType, BigDecimal discountValue,
+                               LocalDateTime startDate, LocalDateTime endDate) {
+        if (discountType == DiscountType.PERCENTAGE && discountValue != null
+                && discountValue.compareTo(new BigDecimal("100")) > 0) {
+            throw new ValidationException("Percentage discount value cannot exceed 100%");
+        }
+        if (startDate != null && endDate != null && !endDate.isAfter(startDate)) {
+            throw new ValidationException("End date must be after start date");
+        }
     }
 }

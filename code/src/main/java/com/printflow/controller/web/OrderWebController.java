@@ -4,11 +4,13 @@ import com.printflow.dto.form.OrderCreateForm;
 import com.printflow.dto.request.OrderCreateRequest;
 import com.printflow.dto.request.OrderItemRequest;
 import com.printflow.dto.response.OrderResponse;
+import com.printflow.exception.InvalidStateTransitionException;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.exception.ValidationException;
 import com.printflow.security.CurrentUserProvider;
 import com.printflow.service.OrderCommandService;
 import com.printflow.service.OrderQueryService;
+import com.printflow.service.OrderStatusService;
 import com.printflow.service.PromotionService;
 import com.printflow.service.ServiceCatalogQueryService;
 import jakarta.validation.Valid;
@@ -28,8 +30,11 @@ import java.util.List;
 @RequestMapping("/orders")
 public class OrderWebController {
 
+    private static final int MAX_PAGE_SIZE = 50;
+
     private final OrderQueryService orderQueryService;
     private final OrderCommandService orderCommandService;
+    private final OrderStatusService orderStatusService;
     private final ServiceCatalogQueryService catalogQueryService;
     private final PromotionService promotionService;
     private final CurrentUserProvider currentUserProvider;
@@ -39,12 +44,14 @@ public class OrderWebController {
     public OrderWebController(
             OrderQueryService orderQueryService,
             OrderCommandService orderCommandService,
+            OrderStatusService orderStatusService,
             ServiceCatalogQueryService catalogQueryService,
             PromotionService promotionService,
             CurrentUserProvider currentUserProvider
     ) {
         this.orderQueryService = orderQueryService;
         this.orderCommandService = orderCommandService;
+        this.orderStatusService = orderStatusService;
         this.catalogQueryService = catalogQueryService;
         this.promotionService = promotionService;
         this.currentUserProvider = currentUserProvider;
@@ -85,7 +92,9 @@ public class OrderWebController {
                     List.of(itemRequest),
                     form.getPromotionCode() != null && !form.getPromotionCode().isBlank()
                             ? form.getPromotionCode().trim()
-                            : null
+                            : null,
+                    form.getFileName(),
+                    form.getFileUrl()
             );
 
             OrderResponse createdOrder = orderCommandService.createOrder(userId, request);
@@ -93,8 +102,10 @@ public class OrderWebController {
             return "redirect:/orders/" + createdOrder.id();
 
         } catch (ValidationException | ResourceNotFoundException ex) {
-            redirect.addFlashAttribute("error", ex.getMessage());
-            return "redirect:/orders/create";
+            // แสดงฟอร์มเดิมพร้อมข้อความ error ข้อมูลที่กรอกไว้จะไม่หาย
+            populateCatalog(model);
+            model.addAttribute("error", ex.getMessage());
+            return "orders/create";
         }
     }
 
@@ -105,7 +116,8 @@ public class OrderWebController {
             @RequestParam(required = false) Boolean all,
             Model model
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        Pageable pageable = PageRequest.of(Math.max(page, 0), safeSize, Sort.by("createdAt").descending());
         Long userId = currentUserProvider.getCurrentUserId();
 
         boolean isStaffOrAdmin = currentUserProvider.isStaffOrAdmin();
@@ -128,6 +140,7 @@ public class OrderWebController {
     public String getOrderDetail(@PathVariable Long id, Model model) {
         OrderResponse order = findVisibleOrder(id);
         model.addAttribute("order", order);
+        model.addAttribute("files", orderQueryService.getFiles(id));
         return "orders/detail";
     }
 
@@ -136,6 +149,18 @@ public class OrderWebController {
         OrderResponse order = findVisibleOrder(id);
         model.addAttribute("order", order);
         return "orders/tracking";
+    }
+
+    // UC-07: ลูกค้ายกเลิก order ของตัวเองได้ตอนที่ยังรอร้านยืนยัน
+    @PostMapping("/{id}/cancel")
+    public String cancelOrder(@PathVariable Long id, RedirectAttributes redirect) {
+        try {
+            orderStatusService.cancelByCustomer(id, currentUserProvider.getCurrentUserId());
+            redirect.addFlashAttribute("success", "ยกเลิกคำสั่งซื้อเรียบร้อยแล้ว");
+        } catch (InvalidStateTransitionException ex) {
+            redirect.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/orders/" + id;
     }
 
     // ลูกค้าดูได้เฉพาะ order ของตัวเอง STAFF/ADMIN ดูได้ทุก order

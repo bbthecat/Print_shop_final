@@ -1,6 +1,7 @@
 package com.printflow.controller.web.staff;
 
 import com.printflow.domain.enums.OrderStatus;
+import com.printflow.dto.response.OrderResponse;
 import com.printflow.exception.InvalidStateTransitionException;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.security.CurrentUserProvider;
@@ -35,9 +36,11 @@ public class StaffOrderDetailPageController {
 
     @GetMapping
     public String detail(@PathVariable Long orderId, Model model) {
-        model.addAttribute("order", orderQueryService.getById(orderId));
+        OrderResponse order = orderQueryService.getById(orderId);
+        model.addAttribute("order", order);
         model.addAttribute("histories", orderStatusService.getHistories(orderId));
-        model.addAttribute("statuses", OrderStatus.values());
+        // แสดงเฉพาะสถานะที่เปลี่ยนไปได้จริงตามกฎของ State pattern
+        model.addAttribute("statuses", orderStatusService.getAllowedNextStatuses(order.status()));
         return "staff/order-detail";
     }
 
@@ -49,7 +52,7 @@ public class StaffOrderDetailPageController {
     ) {
         try {
             orderStatusService.changeStatus(orderId, status, currentUserProvider.getCurrentUserId());
-            redirect.addFlashAttribute("success", "เปลี่ยนสถานะเป็น " + status + " แล้ว");
+            redirect.addFlashAttribute("success", "เปลี่ยนสถานะเป็น \"" + status.getLabel() + "\" แล้ว");
         } catch (InvalidStateTransitionException | ResourceNotFoundException ex) {
             redirect.addFlashAttribute("error", ex.getMessage());
         }

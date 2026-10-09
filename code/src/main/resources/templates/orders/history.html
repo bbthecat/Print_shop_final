@@ -6,7 +6,7 @@
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <main class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div class="page-header">
         <div>
             <h1 style="margin: 0;">ประวัติคำสั่งซื้อ</h1>
             <p class="muted" style="margin: 4px 0 0 0;">ตรวจสอบรายการคำสั่งซื้อและสถานะงานพิมพ์ทั้งหมดของคุณ</p>
@@ -46,14 +46,14 @@
                     1
                 </td>
                 <td style="text-align: right; font-weight: bold; color: var(--primary);"
-                    th:text="${#numbers.formatDecimal(order.totalPrice, 1, 2)} + ' ฿'">
-                    0.00 ฿
+                    th:text="${#numbers.formatDecimal(order.totalPrice, 1, 'COMMA', 2, 'POINT')} + ' บาท'">
+                    0.00 บาท
                 </td>
                 <td style="text-align: center;">
                     <span class="badge"
-                          th:classappend="${order.status.name() == 'COMPLETED'} ? 'badge-active' : (${order.status.name() == 'CANCELLED'} ? 'badge-inactive' : 'badge')"
-                          style="background: #eef2f6; font-weight: 600;"
-                          th:text="${order.status}">PENDING</span>
+                          th:classappend="'status-' + ${order.status.name().toLowerCase()}"
+                          style="font-weight: 600;"
+                          th:text="${order.status.label}">รอร้านยืนยัน</span>
                 </td>
                 <td style="text-align: right;">
                     <a th:href="@{'/orders/' + ${order.id}}" class="btn btn-small btn-secondary">รายละเอียด</a>

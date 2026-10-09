@@ -20,4 +20,13 @@ public interface PromotionService {
                      LocalDateTime startDate, LocalDateTime endDate);
 
     void deactivate(Long id);
+
+    // สำหรับหน้า Admin
+    List<Promotion> findAll();
+
+    Promotion update(Long id, String description, DiscountType discountType,
+                     BigDecimal discountValue, BigDecimal minOrderAmount,
+                     LocalDateTime startDate, LocalDateTime endDate);
+
+    void activate(Long id);
 }

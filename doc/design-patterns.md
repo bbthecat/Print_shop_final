@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Strategy | สูตรคำนวณราคาต่างกันตามประเภทงานพิมพ์ และส่วนลดมี 2 แบบ ถ้ารวมเป็น if-else ต้องแก้โค้ดเดิมทุกครั้งที่เพิ่มประเภท | `service/strategy/pricing/PricingStrategy` + 3 implementation, `PricingStrategyResolver`, `service/strategy/discount/DiscountStrategy` + 2 implementation | [class-diagram.png](diagrams/class-diagram.png) |
 | State | Order มี 6 สถานะ แต่ละสถานะอนุญาต action ต่างกัน ถ้าตรวจด้วย if-else กฎจะกระจายไปทุกเมธอดที่แตะสถานะ | `service/state/OrderState`, `AbstractOrderState`, คลาสของทั้ง 6 สถานะ, `OrderStateResolver` | [state-diagram.md](diagrams/state-diagram.md) |
-| Observer | เปลี่ยนสถานะครั้งเดียวต้องทำงานตามหลายอย่าง (บันทึกประวัติ + แจ้งเตือน) ถ้าเขียนรวมใน service คลาสเดียวจะรับผิดชอบหลายเรื่อง | `service/event/OrderStatusChangedEvent`, `service/listener/OrderHistoryListener`, `InAppNotificationListener` | [status-change-sequence.png](diagrams/status-change-sequence.png) |
+| Observer | สร้าง order / เปลี่ยนสถานะครั้งเดียวต้องทำงานตามหลายอย่าง (สร้าง payment, บันทึกประวัติ, แจ้งเตือน, คืนเงิน) ถ้าเขียนรวมใน service คลาสเดียวจะรับผิดชอบหลายเรื่อง | `service/event/OrderCreatedEvent`, `OrderStatusChangedEvent`, listener 5 ตัวใน `service/listener/` | [status-change-sequence.png](diagrams/status-change-sequence.png) |
 | Chain of Responsibility | การสร้าง Order ต้องผ่านการตรวจหลายเงื่อนไขที่ไม่เกี่ยวข้องกัน ถ้ารวมในเมธอดเดียวจะยาวและทดสอบยาก | `validation/OrderValidationHandler` + handler ทั้งหมด, `config/OrderValidationChainConfig` | [create-order-sequence.png](diagrams/create-order-sequence.png) |
 
 **Enterprise / Architectural Patterns ที่ใช้**
@@ -43,7 +43,7 @@
 | `service/strategy/pricing/PhotoPricingStrategy.java` | Concrete Strategy | คำนวณราคางานพิมพ์ภาพถ่ายคุณภาพสูง |
 | `service/strategy/pricing/PricingStrategyResolver.java` | Resolver (Context Helper) | จับคู่ `PricingType` กับ Strategy ผ่าน Map Lookup โดยปราศจาก `if-else` |
 | `service/strategy/pricing/PricingCalculator.java` | Context / Facade | เรียก Strategy มาคำนวณราคางานพิมพ์หลัก และรวมค่าบริการเสริม (Addon) ต่อชุด |
-| `service/strategy/discount/DiscountStrategy.java` | Strategy Interface | กำหนดสัญญา `calculateDiscount(orderAmount, discountValue)` |
+| `service/strategy/discount/DiscountStrategy.java` | Strategy Interface | กำหนดสัญญา `calculate(subtotal, promotion)` — ถูกเรียกจาก `OrderCommandServiceImpl.calculateDiscount()` ผ่าน `DiscountStrategyResolver` |
 | `service/strategy/discount/PercentageDiscountStrategy.java` | Concrete Strategy | คำนวณส่วนลดแบบคิดเป็นเปอร์เซ็นต์ (%) |
 | `service/strategy/discount/FixedAmountDiscountStrategy.java` | Concrete Strategy | คำนวณส่วนลดแบบจำนวนเงินสดคงที่ (บาท) |
 | `service/strategy/discount/DiscountStrategyResolver.java` | Resolver (Context Helper) | จับคู่ `DiscountType` กับ Strategy ผ่าน Map Lookup |
@@ -63,7 +63,10 @@
 | เย็บมุม (Corner Staple) | 2.00 บาท | ต่อชุด (copy) | สั่ง 3 ชุด = 2.00 × 3 = **6.00 บาท** |
 | เข้าเล่มสันเกลียว (Spiral Binding) | 25.00 บาท | ต่อเล่ม/ชุด (copy) | สั่ง 2 เล่ม = 25.00 × 2 = **50.00 บาท** |
 | เข้าเล่มปกแข็ง (Hardcover Binding) | 80.00 บาท | ต่อเล่ม/ชุด (copy) | สั่ง 1 เล่ม = 80.00 × 1 = **80.00 บาท** |
-| เคลือบพลาสติก (Lamination) | 10.00 บาท | ต่อหน้า/แผ่น | สั่ง 5 แผ่น = 10.00 × 5 = **50.00 บาท** |
+| เคลือบพลาสติก (Lamination) | 10.00 บาท | ต่อชุด (copy) | สั่ง 5 ชุด = 10.00 × 5 = **50.00 บาท** |
+
+**ตัวอย่างเต็ม:** รายงาน 20 หน้า ขาวดำ 1 ชุด + เย็บมุม = (1.50 × 20 × 1) + (2.00 × 1) = **32.00 บาท**
+(`pageCount` = จำนวนหน้าต่อชุด, `copyCount` = จำนวนชุด ลูกค้ากรอกแยกกันในหน้าสั่งพิมพ์)
 
 *สูตรรวมใน `PricingCalculator`:*  
 $$\text{Item Total} = \text{PrintPrice} + \sum (\text{AddonPrice} \times \text{copyCount})$$
@@ -78,7 +81,7 @@ $$\text{Item Total} = \text{PrintPrice} + \sum (\text{AddonPrice} \times \text{c
 ### กฎสำคัญทางธุรกิจ (Business Rules)
 1. **ผลลัพธ์ไม่ติดลบ:** ทุก Strategy คืนค่า $\ge 0$ เสมอ หากคำนวณได้ค่าลบจะตัดเป็น 0
 2. **ไม่เกินยอดรวม:** ส่วนลดต้องไม่เกินยอดสั่งซื้อสุทธิ (ราคาสุทธิหลังลดไม่ติดลบ)
-3. **ยอดสั่งซื้อขั้นต่ำ:** โปรโมชันจะใช้ได้เมื่อยอดสั่งซื้อ $\ge$ `minOrderAmount`
+3. **ยอดสั่งซื้อขั้นต่ำ:** โปรโมชันจะใช้ได้เมื่อยอดสั่งซื้อ $\ge$ `minOrderAmount` ถ้าไม่ถึง ระบบแจ้งลูกค้าว่ายอดยังไม่ถึงขั้นต่ำ (ไม่ลด 0 แบบเงียบ ๆ)
 4. **ช่วงเวลาที่ใช้งานได้:** ตรวจสอบ `startDate` และ `endDate` เทียบกับเวลาปัจจุบัน พร้อมสถานะ `active = true`
 5. **รหัสต้องไม่ซ้ำ:** โค้ดโปรโมชันต้องเป็นตัวพิมพ์ใหญ่และไม่ซ้ำกัน (`UNIQUE`)
 6. **ส่วนลดเปอร์เซ็นต์ต้องไม่เกิน 100%:** โปรโมชันประเภท `PERCENTAGE` กำหนดให้ `discountValue` อยู่ระหว่าง 0.01 ถึง 100.00% เท่านั้น (มี Validation ควบคุมทั้งระดับ DTO Request, Controller Form และ Service Layer)
@@ -150,13 +153,14 @@ action อื่นนอกจากนี้ทั้งหมดถูกป�
 ## Observer (P4)
 
 ### ปัญหาที่แก้
-ทุกครั้งที่สถานะเปลี่ยน มีงานตามหลังหลายอย่าง: บันทึกประวัติ และแจ้งเตือนลูกค้า
+ทุกครั้งที่สร้าง order หรือสถานะเปลี่ยน มีงานตามหลังหลายอย่าง: สร้าง payment, บันทึกประวัติ, แจ้งเตือนลูกค้า/พนักงาน, คืนเงินเมื่อยกเลิก
 ถ้าเขียนรวมใน `OrderStatusService` คลาสเดียวจะรับผิดชอบหลายเรื่อง
 และทุกครั้งที่เพิ่มงานตามหลังใหม่ต้องกลับมาแก้ service เดิม
 
 ### แนวทาง
 ใช้ `ApplicationEventPublisher` ของ Spring
 
+OrderCommandService สร้าง order เสร็จ → publish `OrderCreatedEvent`
 OrderStatusService เปลี่ยนสถานะเสร็จ → publish `OrderStatusChangedEvent`
 → Listener ที่สนใจทำงานของตัวเองแยกกัน โดย service ไม่รู้จัก listener เลย
 
@@ -171,14 +175,19 @@ OrderStatusChangedEvent(
 ```
 
 ### Listener
-| Listener | ทำอะไร | เขียนลงตาราง |
-|---|---|---|
-| `OrderHistoryListener` | บันทึกว่าใครเปลี่ยนจากสถานะไหนเป็นสถานะไหน เมื่อไหร่ | `order_status_histories` |
-| `InAppNotificationListener` | สร้างการแจ้งเตือนในระบบให้เจ้าของคำสั่งซื้อ | `notifications` |
+| Listener | ฟัง event | ทำอะไร | เขียนลงตาราง |
+|---|---|---|---|
+| `PaymentCreationListener` | `OrderCreatedEvent` | สร้าง payment แบบ UNPAID จากยอดของ order (ถ้ายังไม่มี) | `payments` |
+| `StaffNewOrderListener` | `OrderCreatedEvent` | แจ้งเตือนพนักงาน (STAFF) ทุกคนว่ามีงานใหม่ | `notifications` |
+| `OrderHistoryListener` | `OrderStatusChangedEvent` | บันทึกว่าใครเปลี่ยนจากสถานะไหนเป็นสถานะไหน เมื่อไหร่ | `order_status_histories` |
+| `InAppNotificationListener` | `OrderStatusChangedEvent` | สร้างการแจ้งเตือนในระบบให้เจ้าของคำสั่งซื้อ | `notifications` |
+| `PaymentRefundListener` | `OrderStatusChangedEvent` | order ถูกยกเลิก → payment ที่จ่ายแล้วเปลี่ยนเป็น REFUNDED (รายงานยอดขายจะไม่นับ) | `payments` |
+
+ทั้ง flow ทดสอบจริงใน `ObserverIntegrationTest` (`@SpringBootTest` + ฐานข้อมูล H2)
 
 ### ผลลัพธ์
 เพิ่มช่องทางแจ้งเตือนในอนาคต (Email / LINE) = เพิ่ม Listener ใหม่หนึ่งคลาส
-ไม่ต้องแตะ `OrderStatusService` เลย
+ไม่ต้องแตะ `OrderStatusService` เลย — `PaymentRefundListener` และ `StaffNewOrderListener` ก็เพิ่มเข้ามาทีหลังด้วยวิธีนี้
 
 ### SOLID ที่เกี่ยวข้อง
 - **SRP** — listener แต่ละตัวทำงานเดียว
@@ -232,14 +241,14 @@ Listener ใช้ตารางนี้สร้าง `title` และ `mes
 ```
 [Request] → ServiceAvailabilityHandler → FileTypeValidationHandler → QuantityValidationHandler → PromotionValidityHandler → [Save Order]
                      ↓                              ↓                          ↓                           ↓
-            (โยน 400 ถ้าไม่พบ/ปิด)       (โยน 400 ถ้าไฟล์ผิด)         (โยน 400 ถ้า quantity<=0)   (โยน 400 ถ้าโปรโมชันหมดอายุ)
+            (โยน 400 ถ้าไม่พบ/ปิด)       (โยน 400 ถ้าไฟล์ผิด)         (โยน 400 ถ้าหน้า/ชุด<=0)   (โยน 400 ถ้าโปรโมชันหมดอายุ)
 ```
 
 | ลำดับ | Handler | สิ่งที่ตรวจสอบ | ข้อยกเว้น/ข้อความ Error |
 |---|---|---|---|
 | 1 | `ServiceAvailabilityHandler` | ตรวจสอบว่า `serviceId` ของทุก Item มีอยู่จริงและ `active = true` ผ่าน `ServiceCatalogQueryService` | `ValidationException` / `ResourceNotFoundException` ("Service not found with ID: {id}") |
-| 2 | `FileTypeValidationHandler` | ตรวจสอบ Mime Type ของไฟล์ที่แนบ รองรับเฉพาะ `application/pdf`, `image/jpeg`, `image/png` | `ValidationException` ("File type is not supported: {type}") |
-| 3 | `QuantityValidationHandler` | ตรวจสอบว่าจำนวน `quantity` ของแต่ละ Item ต้องมากกว่า 0 | `ValidationException` ("Quantity must be greater than 0") |
+| 2 | `FileTypeValidationHandler` | ตรวจสอบ Mime Type ของไฟล์ที่แนบ รองรับเฉพาะ `application/pdf`, `image/jpeg`, `image/png` | `ValidationException` ("รองรับเฉพาะไฟล์ PDF, JPG และ PNG ...") — ชนิดไฟล์เดาจากนามสกุลของชื่อไฟล์ที่ลูกค้ากรอก |
+| 3 | `QuantityValidationHandler` | ตรวจสอบว่าจำนวนชุด (`quantity`) และจำนวนหน้า (`pageCount`) ของแต่ละ Item ต้องมากกว่า 0 | `ValidationException` ("Quantity must be greater than 0" / "Page count must be greater than 0") |
 | 4 | `PromotionValidityHandler` | ตรวจสอบโปรโมชัน (ถ้ามี) ว่ามีอยู่จริง, `active = true`, และวันเวลาปัจจุบันอยู่ในช่วง `startDate` ถึง `endDate` | `ValidationException` ("Promotion is inactive: {code}" หรือ "Promotion is not valid at this time: {code}") |
 
 ### ไฟล์/คลาสที่ใช้

@@ -10,5 +10,7 @@ RUN mvn -B package -DskipTests
 FROM eclipse-temurin:17-jre-jammy
 COPY --from=build /workspace/app/target/*.jar app.jar
 ENV PORT=8080
+# ร้านอยู่ไทย: วันที่ในรายงาน/เวลาสั่งงานต้องเป็นเวลาไทย ไม่ใช่ UTC ของ server
+ENV TZ=Asia/Bangkok
 EXPOSE 8080
-ENTRYPOINT ["java","-jar","/app.jar"]
+ENTRYPOINT ["java","-Duser.timezone=Asia/Bangkok","-jar","/app.jar"]

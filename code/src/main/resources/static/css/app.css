@@ -37,7 +37,7 @@ a:hover { text-decoration: underline; }
 }
 .navbar a { color: #fff; }
 .navbar .brand { font-weight: 700; font-size: 1.2rem; }
-.nav-links { display: flex; gap: 16px; flex: 1; }
+.nav-links { display: flex; flex-wrap: wrap; gap: 6px 16px; flex: 1; }
 .nav-user { display: flex; align-items: center; gap: 12px; }
 .navbar .muted { color: #c9d6e3; }
 
@@ -128,8 +128,31 @@ th { background: #eef2f6; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
 
+/* layout ที่ใช้ร่วมกันหลายหน้า */
+.page-header { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+.addon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stepper { display: flex; justify-content: space-between; position: relative; max-width: 800px; margin: 0 auto 32px auto; }
+.table-scroll { overflow-x: auto; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* สีป้ายสถานะคำสั่งซื้อ */
+.badge-success { background: var(--success-bg); color: var(--success-text); }
+.status-pending { background: #fff4e5; color: #8a5300; }
+.status-confirmed { background: #e8f0fb; color: #1f3a5f; }
+.status-processing { background: #ede7f6; color: #4a2c82; }
+.status-ready { background: #e0f2f1; color: #00695c; }
+.status-completed { background: var(--success-bg); color: var(--success-text); }
+.status-cancelled { background: var(--error-bg); color: var(--error-text); }
+
+/* หน้า error */
+.error-page { text-align: center; padding: 48px 16px; }
+.error-code { font-size: 4rem; font-weight: 700; color: var(--primary); margin: 0; }
+
 @media (max-width: 640px) {
     .navbar { flex-wrap: wrap; gap: 10px; }
     .form-row { flex-direction: column; gap: 0; }
+    .two-col, .addon-grid { grid-template-columns: 1fr; }
+    .stepper { flex-wrap: wrap; gap: 12px; }
     table { font-size: 0.85rem; }
 }

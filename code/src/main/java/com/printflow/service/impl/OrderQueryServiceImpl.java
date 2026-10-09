@@ -1,18 +1,26 @@
 package com.printflow.service.impl;
 
 import com.printflow.domain.entity.AddonService;
+import com.printflow.domain.entity.OrderPromotion;
 import com.printflow.domain.entity.PrintItem;
 import com.printflow.domain.entity.PrintOrder;
 import com.printflow.domain.entity.PrintService;
+import com.printflow.domain.entity.Promotion;
+import com.printflow.domain.entity.User;
 import com.printflow.domain.enums.OrderStatus;
+import com.printflow.dto.response.OrderFileResponse;
 import com.printflow.dto.response.OrderResponse;
 import com.printflow.exception.ResourceNotFoundException;
 import com.printflow.mapper.OrderMapper;
 import com.printflow.repository.AddonServiceRepository;
+import com.printflow.repository.OrderFileRepository;
+import com.printflow.repository.OrderPromotionRepository;
 import com.printflow.repository.OrderRepository;
 import com.printflow.repository.PrintItemAddonRepository;
 import com.printflow.repository.PrintItemRepository;
 import com.printflow.repository.PrintServiceRepository;
+import com.printflow.repository.PromotionRepository;
+import com.printflow.repository.UserRepository;
 import com.printflow.service.OrderQueryService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +28,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,6 +42,10 @@ public class OrderQueryServiceImpl implements OrderQueryService {
     private final PrintItemAddonRepository printItemAddonRepository;
     private final PrintServiceRepository printServiceRepository;
     private final AddonServiceRepository addonServiceRepository;
+    private final UserRepository userRepository;
+    private final OrderFileRepository orderFileRepository;
+    private final OrderPromotionRepository orderPromotionRepository;
+    private final PromotionRepository promotionRepository;
     private final OrderMapper orderMapper;
 
     public OrderQueryServiceImpl(
@@ -41,6 +54,10 @@ public class OrderQueryServiceImpl implements OrderQueryService {
             PrintItemAddonRepository printItemAddonRepository,
             PrintServiceRepository printServiceRepository,
             AddonServiceRepository addonServiceRepository,
+            UserRepository userRepository,
+            OrderFileRepository orderFileRepository,
+            OrderPromotionRepository orderPromotionRepository,
+            PromotionRepository promotionRepository,
             OrderMapper orderMapper
     ) {
         this.orderRepository = orderRepository;
@@ -48,6 +65,10 @@ public class OrderQueryServiceImpl implements OrderQueryService {
         this.printItemAddonRepository = printItemAddonRepository;
         this.printServiceRepository = printServiceRepository;
         this.addonServiceRepository = addonServiceRepository;
+        this.userRepository = userRepository;
+        this.orderFileRepository = orderFileRepository;
+        this.orderPromotionRepository = orderPromotionRepository;
+        this.promotionRepository = promotionRepository;
         this.orderMapper = orderMapper;
     }
 
@@ -63,6 +84,19 @@ public class OrderQueryServiceImpl implements OrderQueryService {
             throw new AccessDeniedException("You can only view your own orders");
         }
         return toResponse(order);
+    }
+
+    @Override
+    public long countByStatus(OrderStatus status) {
+        return orderRepository.countByStatus(status);
+    }
+
+    @Override
+    public List<OrderFileResponse> getFiles(Long orderId) {
+        return orderFileRepository.findByOrderId(orderId).stream()
+                .map(file -> new OrderFileResponse(
+                        file.getId(), file.getFileName(), file.getFilePath(), file.getFileType()))
+                .toList();
     }
 
     @Override
@@ -100,7 +134,23 @@ public class OrderQueryServiceImpl implements OrderQueryService {
                 .stream()
                 .collect(Collectors.toMap(AddonService::getId, AddonService::getName));
 
-        return orderMapper.toResponse(order, items, addonIdsByItemId, serviceNames, addonNames);
+        String customerName = userRepository.findById(order.getUserId())
+                .map(User::getUsername)
+                .orElse("#" + order.getUserId());
+
+        // ส่วนลดที่ใช้กับ order นี้ (มีได้ไม่เกิน 1 โค้ด)
+        List<OrderPromotion> promotions = orderPromotionRepository.findByOrderId(order.getId());
+        BigDecimal discount = promotions.stream()
+                .map(OrderPromotion::getDiscountAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        String promotionCode = promotions.isEmpty()
+                ? null
+                : promotionRepository.findById(promotions.get(0).getPromotionId())
+                        .map(Promotion::getCode)
+                        .orElse(null);
+
+        return orderMapper.toResponse(order, items, addonIdsByItemId, serviceNames, addonNames, customerName,
+                discount, promotionCode);
     }
 
     private PrintOrder findOrder(Long id) {

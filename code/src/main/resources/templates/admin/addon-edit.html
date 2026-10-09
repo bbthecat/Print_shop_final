@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('แก้ไขบริการเสริม')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container narrow">
+    <section class="card">
+        <h1>แก้ไขบริการเสริม</h1>
+
+        <form th:action="@{/admin/services/addons/{id}/edit(id=${addonId})}" th:object="${addonForm}" method="post" novalidate>
+            <div class="form-group">
+                <label for="name">ชื่อบริการเสริม</label>
+                <input th:field="*{name}" type="text" th:classappend="${#fields.hasErrors('name')} ? 'invalid'">
+                <div class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="price">ราคา (บาท/ชุด)</label>
+                <input th:field="*{price}" type="number" step="0.25"
+                       th:classappend="${#fields.hasErrors('price')} ? 'invalid'">
+                <div class="field-error" th:if="${#fields.hasErrors('price')}" th:errors="*{price}"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">รายละเอียดเพิ่มเติม</label>
+                <input th:field="*{description}" type="text">
+            </div>
+
+            <button type="submit" class="btn">บันทึก</button>
+            <a class="btn btn-secondary" th:href="@{/admin/services}">ยกเลิก</a>
+        </form>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

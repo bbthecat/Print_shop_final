@@ -38,6 +38,10 @@ public class PaymentServiceImpl implements PaymentService {
         PrintOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
 
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new InvalidStateTransitionException("Cannot create a payment for a cancelled order: " + orderId);
+        }
+
         paymentRepository.findByOrderId(orderId).ifPresent(existing -> {
             throw new DuplicateResourceException("Payment already exists for order: " + orderId);
         });
@@ -71,11 +75,29 @@ public class PaymentServiceImpl implements PaymentService {
             throw new InvalidStateTransitionException("Cannot pay a cancelled order: " + orderId);
         }
 
-        Payment payment = findByOrderId(orderId);
+        // order เก่าที่สร้างก่อนมีระบบสร้าง payment อัตโนมัติ จะได้ payment ตอนนี้
+        Payment payment = createUnpaidIfAbsent(orderId);
+
+        // กันกดชำระซ้ำ (วันที่ชำระจะถูกเขียนทับ ทำให้รายงานยอดขายผิดช่วงวัน)
+        if (payment.getPaymentStatus() != PaymentStatus.UNPAID) {
+            throw new InvalidStateTransitionException(
+                    "Payment for order " + orderId + " is already " + payment.getPaymentStatus());
+        }
+
         payment.setPaymentMethod(method);
         payment.setPaymentStatus(PaymentStatus.PAID);
         payment.setPaidAt(LocalDateTime.now());
         return paymentRepository.save(payment);
+    }
+
+    @Override
+    public void refundIfPaid(Long orderId) {
+        paymentRepository.findByOrderId(orderId)
+                .filter(payment -> payment.getPaymentStatus() == PaymentStatus.PAID)
+                .ifPresent(payment -> {
+                    payment.setPaymentStatus(PaymentStatus.REFUNDED);
+                    paymentRepository.save(payment);
+                });
     }
 
     @Override
