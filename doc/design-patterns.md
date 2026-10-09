@@ -231,7 +231,7 @@ Listener ใช้ตารางนี้สร้าง `title` และ `mes
 ใช้ **Chain of Responsibility (GoF Behavioral Pattern)**:
 1. กำหนด `OrderValidationHandler` เป็น Abstract Base Handler มีพอยน์เตอร์ `next` และเมธอด `handle(OrderValidationContext context)`
 2. ห่อหุ้มข้อมูลคำสั่งซื้อที่ต้องใช้ตรวจสอบไว้ใน `OrderValidationContext`
-3. แยกกฎการตรวจสอบแต่ละเรื่องออกเป็น Handler เฉพาะตัว 4 ตัว
+3. แยกกฎการตรวจสอบแต่ละเรื่องออกเป็น Handler เฉพาะตัว 5 ตัว
 4. หากการตรวจสอบใน Handler ตัวใดไม่ผ่าน จะโยน `ValidationException` ทันที และหยุดการทำงานของ Chain
 5. หากผ่าน จะส่งต่อให้ Handler ถัดไปด้วย `next.handle(context)`
 6. การประกอบสาย Chain ทำผ่าน Spring `@Configuration` (`OrderValidationChainConfig`) และ Inject เข้า `OrderCommandService` ผ่าน Constructor Injection
@@ -239,9 +239,9 @@ Listener ใช้ตารางนี้สร้าง `title` และ `mes
 ### ลำดับ Chain การตรวจสอบ (Validation Flow)
 
 ```
-[Request] → ServiceAvailabilityHandler → FileTypeValidationHandler → QuantityValidationHandler → PromotionValidityHandler → [Save Order]
-                     ↓                              ↓                          ↓                           ↓
-            (โยน 400 ถ้าไม่พบ/ปิด)       (โยน 400 ถ้าไฟล์ผิด)         (โยน 400 ถ้าหน้า/ชุด<=0)   (โยน 400 ถ้าโปรโมชันหมดอายุ)
+[Request] → ServiceAvailabilityHandler → FileTypeValidationHandler → QuantityValidationHandler → PromotionValidityHandler → PromotionUsageLimitHandler → [Save Order]
+                     ↓                              ↓                          ↓                           ↓                             ↓
+            (โยน 400 ถ้าไม่พบ/ปิด)       (โยน 400 ถ้าไฟล์ผิด)         (โยน 400 ถ้าหน้า/ชุด<=0)   (โยน 400 ถ้าโปรโมชันหมดอายุ)   (โยน 400 ถ้าเคยใช้โค้ดนี้แล้ว)
 ```
 
 | ลำดับ | Handler | สิ่งที่ตรวจสอบ | ข้อยกเว้น/ข้อความ Error |
@@ -250,6 +250,7 @@ Listener ใช้ตารางนี้สร้าง `title` และ `mes
 | 2 | `FileTypeValidationHandler` | ตรวจสอบ Mime Type ของไฟล์ที่แนบ รองรับเฉพาะ `application/pdf`, `image/jpeg`, `image/png` | `ValidationException` ("รองรับเฉพาะไฟล์ PDF, JPG และ PNG ...") — ชนิดไฟล์เดาจากนามสกุลของชื่อไฟล์ที่ลูกค้ากรอก |
 | 3 | `QuantityValidationHandler` | ตรวจสอบว่าจำนวนชุด (`quantity`) และจำนวนหน้า (`pageCount`) ของแต่ละ Item ต้องมากกว่า 0 | `ValidationException` ("Quantity must be greater than 0" / "Page count must be greater than 0") |
 | 4 | `PromotionValidityHandler` | ตรวจสอบโปรโมชัน (ถ้ามี) ว่ามีอยู่จริง, `active = true`, และวันเวลาปัจจุบันอยู่ในช่วง `startDate` ถึง `endDate` | `ValidationException` ("Promotion is inactive: {code}" หรือ "Promotion is not valid at this time: {code}") |
+| 5 | `PromotionUsageLimitHandler` | ลูกค้าแต่ละคนใช้โค้ดแต่ละโค้ดได้ 1 ครั้ง (มีหลายโค้ดก็ใช้ได้ทุกโค้ด) ตรวจจาก `OrderPromotionRepository` โดยไม่นับ order ที่ถูกยกเลิก จึงได้สิทธิ์คืนเมื่อยกเลิก | `ValidationException` ("คุณใช้โค้ด {code} ไปแล้ว (ใช้ได้คนละ 1 ครั้งต่อโค้ด)") |
 
 ### ไฟล์/คลาสที่ใช้
 | ไฟล์ | หน้าที่ |
@@ -260,7 +261,8 @@ Listener ใช้ตารางนี้สร้าง `title` และ `mes
 | `validation/FileTypeValidationHandler.java` | ตรวจสอบความถูกต้องของประเภทไฟล์เอกสาร |
 | `validation/QuantityValidationHandler.java` | ตรวจสอบจำนวนชิ้นงานพิมพ์ |
 | `validation/PromotionValidityHandler.java` | ตรวจสอบความถูกต้องและช่วงเวลาใช้งานของโปรโมชัน |
-| `config/OrderValidationChainConfig.java` | ประกอบ Chain Bean ตามลำดับ: ServiceAvailability → FileType → Quantity → Promotion |
+| `validation/PromotionUsageLimitHandler.java` | ตรวจว่าลูกค้าคนนี้ยังไม่เคยใช้โค้ดนี้ (ไม่นับ order ที่ยกเลิก) |
+| `config/OrderValidationChainConfig.java` | ประกอบ Chain Bean ตามลำดับ: ServiceAvailability → FileType → Quantity → PromotionValidity → PromotionUsageLimit |
 | `service/impl/OrderCommandServiceImpl.java` | เรียกใช้ `orderValidationChain.handle(...)` ก่อนขั้นตอนคำนวณราคาและบันทึก |
 
 ### ผลลัพธ์เมื่อ Validation ไม่ผ่าน
@@ -269,5 +271,5 @@ Listener ใช้ตารางนี้สร้าง `title` และ `mes
 
 ### SOLID ที่เกี่ยวข้อง
 - **SRP (Single Responsibility Principle):** แต่ละ Handler รับผิดชอบตรวจสอบกฎเพียงเรื่องเดียวอย่างชัดเจน
-- **OCP (Open/Closed Principle):** เพิ่มกฎการตรวจสอบใหม่ได้โดยการสร้าง Handler คลาสใหม่และต่อเข้ากับ Chain ใน Config โดยไม่ต้องแก้ไขโค้ดของ `OrderCommandService`
+- **OCP (Open/Closed Principle):** เพิ่มกฎการตรวจสอบใหม่ได้โดยการสร้าง Handler คลาสใหม่และต่อเข้ากับ Chain ใน Config โดยไม่ต้องแก้ไขโค้ดของ `OrderCommandService` เช่น กฎ "โค้ดละ 1 ครั้งต่อคน" เพิ่มเป็น `PromotionUsageLimitHandler` ตัวที่ 5 โดยแก้แค่ `OrderValidationChainConfig`
 - **DIP (Dependency Inversion Principle):** `OrderCommandService` พึ่งพา Abstraction (`OrderValidationHandler`) แทนที่จะผูกติดกับ Concrete Handler ตัวใดตัวหนึ่งโดยตรง
