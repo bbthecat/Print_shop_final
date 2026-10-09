@@ -18,6 +18,7 @@
     <details class="card" th:open="${openForm}" style="margin-bottom: 30px;">
         <summary><strong>+ เพิ่มโค้ดโปรโมชันใหม่</strong></summary>
         <form th:action="@{/admin/promotions}" th:object="${form}" method="post" style="margin-top: 16px;">
+            <div class="alert alert-error" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
             <div class="form-row">
                 <div class="form-group">
                     <label for="code">รหัสโปรโมชัน (Code)</label>

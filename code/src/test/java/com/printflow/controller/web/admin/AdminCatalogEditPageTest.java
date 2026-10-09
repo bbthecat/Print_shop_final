@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -97,6 +98,24 @@ class AdminCatalogEditPageTest {
                 .andExpect(status().is3xxRedirection());
 
         verify(commandService).updateAddonService(2L, null, null, null, true);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void updatePromotion_serviceRejects_showsFormErrorInsteadOf500() throws Exception {
+        doThrow(new com.printflow.exception.ValidationException("End date must be after start date"))
+                .when(promotionService).update(any(), any(), any(), any(), any(), any(), any());
+
+        mockMvc.perform(post("/admin/promotions/10/edit").with(csrf())
+                        .param("code", "SAVE30")
+                        .param("discountType", "FIXED_AMOUNT")
+                        .param("discountValue", "30")
+                        .param("minOrderAmount", "200")
+                        .param("startDate", "2026-01-01T00:00")
+                        .param("endDate", "2026-12-31T00:00"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/promotion-edit"))
+                .andExpect(content().string(containsString("End date must be after start date")));
     }
 
     @Test

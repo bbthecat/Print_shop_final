@@ -1,6 +1,7 @@
 package com.printflow.dto.request;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -16,6 +17,7 @@ public record AddonServiceRequest(
 
         @NotNull(message = "Price is required")
         @DecimalMin(value = "0.00", inclusive = true, message = "Price must be greater than or equal to 0")
+        @Digits(integer = 8, fraction = 2, message = "Amount must have at most 8 digits and 2 decimals")
         BigDecimal price
 ) {
 }

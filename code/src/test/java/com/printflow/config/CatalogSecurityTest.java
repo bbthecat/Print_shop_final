@@ -124,4 +124,12 @@ class CatalogSecurityTest {
                 .andExpect(status().isForbidden());
         verifyNoInteractions(promotionService);
     }
+
+    @Test
+    @WithMockUser(roles = "CUSTOMER")
+    void getPromotionById_asCustomer_returns403() throws Exception {
+        mockMvc.perform(get("/api/v1/promotions/1"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(promotionService);
+    }
 }

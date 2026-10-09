@@ -1,6 +1,7 @@
 package com.printflow.dto.form;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -21,5 +22,6 @@ public class AdminAddonForm {
 
     @NotNull(message = "กรุณาระบุราคา")
     @DecimalMin(value = "0.00", inclusive = true, message = "ราคาต้องมากกว่าหรือเท่ากับ 0")
+    @Digits(integer = 8, fraction = 2, message = "จำนวนเงินต้องไม่เกิน 8 หลัก และทศนิยมไม่เกิน 2 ตำแหน่ง")
     private BigDecimal price;
 }

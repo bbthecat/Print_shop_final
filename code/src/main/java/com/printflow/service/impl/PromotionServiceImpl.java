@@ -56,7 +56,12 @@ public class PromotionServiceImpl implements PromotionService {
     @Override
     @Transactional(readOnly = true)
     public List<Promotion> findAllActive() {
-        return promotionRepository.findAllByActiveTrue();
+        // แสดงลูกค้าเฉพาะโปรที่เปิดอยู่และอยู่ในช่วงวันที่ใช้ได้ตอนนี้
+        LocalDateTime now = LocalDateTime.now();
+        return promotionRepository.findAllByActiveTrue().stream()
+                .filter(p -> p.getStartDate() == null || !p.getStartDate().isAfter(now))
+                .filter(p -> p.getEndDate() == null || !p.getEndDate().isBefore(now))
+                .toList();
     }
 
     @Override
