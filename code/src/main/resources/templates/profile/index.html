@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('ข้อมูลส่วนตัว')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container narrow">
+    <section class="card">
+        <h1>ข้อมูลส่วนตัว</h1>
+        <p class="muted">
+            ชื่อผู้ใช้: <strong th:text="${customer.username}">customer01</strong>
+            · สมัครเมื่อ <span th:text="${#temporals.format(customer.createdAt, 'dd/MM/yyyy')}">01/01/2026</span>
+        </p>
+
+        <div th:replace="~{fragments/layout :: flash}"></div>
+
+        <form th:action="@{/profile}" th:object="${form}" method="post" novalidate>
+            <div class="form-group">
+                <label for="email">อีเมล</label>
+                <input th:field="*{email}" type="email" autocomplete="email"
+                       th:classappend="${#fields.hasErrors('email')} ? 'invalid'">
+                <div class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="firstName">ชื่อ</label>
+                    <input th:field="*{firstName}" type="text"
+                           th:classappend="${#fields.hasErrors('firstName')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></div>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">นามสกุล</label>
+                    <input th:field="*{lastName}" type="text"
+                           th:classappend="${#fields.hasErrors('lastName')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="phoneNumber">เบอร์โทร (ไม่บังคับ)</label>
+                <input th:field="*{phoneNumber}" type="tel">
+                <div class="field-error" th:if="${#fields.hasErrors('phoneNumber')}" th:errors="*{phoneNumber}"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="address">ที่อยู่ (ไม่บังคับ)</label>
+                <textarea th:field="*{address}" rows="2"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-block">บันทึก</button>
+        </form>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

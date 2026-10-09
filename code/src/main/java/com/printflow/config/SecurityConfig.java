@@ -40,7 +40,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/customers/**").hasRole(ADMIN)
                         .requestMatchers("/api/v1/customers", "/api/v1/customers/**").hasAnyRole(STAFF, ADMIN)
                         .requestMatchers(HttpMethod.GET, CATALOG_PATHS).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/promotions", "/api/v1/promotions/**").authenticated()
+                        // ลูกค้าเห็นเฉพาะรายการโปรที่ใช้ได้และตรวจโค้ดได้ ส่วนดูรายตัว (รวมโปรที่ปิดแล้ว) เฉพาะ ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/v1/promotions", "/api/v1/promotions/validate/**").authenticated()
                         .requestMatchers(CATALOG_PATHS).hasRole(ADMIN)
                         .requestMatchers("/api/v1/promotions", "/api/v1/promotions/**").hasRole(ADMIN)
                         // ลูกค้าสร้าง/ดู order ได้ แต่ดูทั้งหมด เปลี่ยนสถานะ และบันทึกชำระเงินได้เฉพาะ STAFF/ADMIN
@@ -50,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/payment").hasAnyRole(STAFF, ADMIN)
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/orders/*/payment").hasAnyRole(STAFF, ADMIN)
                         .requestMatchers("/api/v1/reports/**", "/api/v1/admin/**", "/admin/**").hasRole(ADMIN)
+                        .requestMatchers("/profile").hasRole("CUSTOMER")
                         .requestMatchers("/staff/**").hasAnyRole(STAFF, ADMIN)
                         .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())

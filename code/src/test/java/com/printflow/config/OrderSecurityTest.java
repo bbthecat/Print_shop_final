@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -122,5 +123,39 @@ class OrderSecurityTest {
         mockMvc.perform(delete("/api/v1/orders/1"))
                 .andExpect(status().isNoContent());
         verify(commandService).deleteOrder(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "CUSTOMER")
+    void statusHistoryOfOtherCustomersOrder_returns403() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(2L);
+        when(queryService.getByIdForUser(1L, 2L, false))
+                .thenThrow(new AccessDeniedException("You can only view your own orders"));
+
+        mockMvc.perform(get("/api/v1/orders/1/status-histories"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(orderStatusService);
+    }
+
+    @Test
+    @WithMockUser(roles = "CUSTOMER")
+    void paymentOfOtherCustomersOrder_returns403() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(2L);
+        when(queryService.getByIdForUser(1L, 2L, false))
+                .thenThrow(new AccessDeniedException("You can only view your own orders"));
+
+        mockMvc.perform(get("/api/v1/orders/1/payment"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(paymentService);
+    }
+
+    @Test
+    @WithMockUser(roles = "CUSTOMER")
+    void customerCancelsOwnOrder_isAllowed() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(2L);
+        when(orderStatusService.cancelByCustomer(1L, 2L)).thenReturn(com.printflow.domain.enums.OrderStatus.CANCELLED);
+
+        mockMvc.perform(post("/api/v1/orders/1/cancel"))
+                .andExpect(status().isOk());
     }
 }

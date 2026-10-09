@@ -10,43 +10,47 @@
     <div th:replace="~{fragments/layout :: flash}"></div>
 
     <form th:action="@{/staff/orders}" method="get" class="inline-controls">
-        <select name="status">
+        <label for="statusFilter">กรองตามสถานะ:</label>
+        <select id="statusFilter" name="status">
             <option value="">ทุกสถานะ</option>
             <option th:each="s : ${statuses}"
                     th:value="${s}"
-                    th:text="${s}"
-                    th:selected="${s == selectedStatus}">PENDING</option>
+                    th:text="${s.label}"
+                    th:selected="${s == selectedStatus}">รอร้านยืนยัน</option>
         </select>
         <button type="submit" class="btn btn-small">กรอง</button>
     </form>
 
-    <table class="card">
-        <thead>
-        <tr>
-            <th>เลขที่</th>
-            <th>ลูกค้า</th>
-            <th>สถานะ</th>
-            <th>ยอดรวม</th>
-            <th>วันที่สั่ง</th>
-            <th></th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="order : ${orders.content}">
-            <td th:text="${order.orderNumber()}">ORD-001</td>
-            <td th:text="${order.userId()}">1</td>
-            <td><span class="badge" th:text="${order.status()}">PENDING</span></td>
-            <td th:text="${order.totalPrice()}">0.00</td>
-            <td th:text="${#temporals.format(order.createdAt(), 'dd/MM/yyyy HH:mm')}">-</td>
-            <td>
-                <a class="btn btn-small" th:href="@{/staff/orders/{id}(id=${order.id()})}">ดูรายละเอียด</a>
-            </td>
-        </tr>
-        <tr th:if="${orders.isEmpty()}">
-            <td colspan="6" class="text-center muted">ไม่มีคำสั่งซื้อ</td>
-        </tr>
-        </tbody>
-    </table>
+    <section class="card table-scroll">
+        <table>
+            <thead>
+            <tr>
+                <th>เลขที่</th>
+                <th>ลูกค้า</th>
+                <th>สถานะ</th>
+                <th>ยอดรวม (บาท)</th>
+                <th>วันที่สั่ง</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="order : ${orders.content}">
+                <td th:text="${order.orderNumber()}">ORD-001</td>
+                <td th:text="${order.customerName()}">customer01</td>
+                <td><span class="badge" th:classappend="'status-' + ${order.status().name().toLowerCase()}"
+                          th:text="${order.status().label}">รอร้านยืนยัน</span></td>
+                <td th:text="${#numbers.formatDecimal(order.totalPrice(), 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                <td th:text="${#temporals.format(order.createdAt(), 'dd/MM/yyyy HH:mm')}">-</td>
+                <td>
+                    <a class="btn btn-small" th:href="@{/staff/orders/{id}(id=${order.id()})}">ดูรายละเอียด</a>
+                </td>
+            </tr>
+            <tr th:if="${orders.isEmpty()}">
+                <td colspan="6" class="text-center muted">ไม่มีคำสั่งซื้อ</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
 
     <div class="pagination" th:if="${orders.totalPages > 1}">
         <a th:if="${!orders.first}"

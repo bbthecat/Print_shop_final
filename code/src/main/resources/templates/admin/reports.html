@@ -41,7 +41,7 @@
             </thead>
             <tbody>
             <tr th:each="entry : ${report.ordersByStatus}">
-                <td th:text="${entry.key}">PENDING</td>
+                <td><span class="badge" th:classappend="'status-' + ${entry.key.name().toLowerCase()}" th:text="${entry.key.label}">รอร้านยืนยัน</span></td>
                 <td th:text="${entry.value}">0</td>
             </tr>
             </tbody>

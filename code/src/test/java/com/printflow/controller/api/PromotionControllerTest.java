@@ -83,7 +83,7 @@ class PromotionControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     void getById_whenNotFound_shouldReturn404() throws Exception {
         when(promotionService.findById(99L))
                 .thenThrow(new ResourceNotFoundException("Promotion not found"));

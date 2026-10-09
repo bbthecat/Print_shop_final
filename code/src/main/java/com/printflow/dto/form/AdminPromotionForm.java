@@ -24,9 +24,11 @@ public class AdminPromotionForm {
 
     @NotNull(message = "กรุณาระบุมูลค่าส่วนลด")
     @DecimalMin(value = "0.01", message = "มูลค่าส่วนลดต้องมากกว่า 0")
+    @Digits(integer = 8, fraction = 2, message = "จำนวนเงินต้องไม่เกิน 8 หลัก และทศนิยมไม่เกิน 2 ตำแหน่ง")
     private BigDecimal discountValue;
 
     @DecimalMin(value = "0.00", inclusive = true, message = "ยอดสั่งซื้อขั้นต่ำต้องมากกว่าหรือเท่ากับ 0")
+    @Digits(integer = 8, fraction = 2, message = "จำนวนเงินต้องไม่เกิน 8 หลัก และทศนิยมไม่เกิน 2 ตำแหน่ง")
     private BigDecimal minOrderAmount = BigDecimal.ZERO;
 
     @NotNull(message = "กรุณาระบุวันเริ่มต้น")

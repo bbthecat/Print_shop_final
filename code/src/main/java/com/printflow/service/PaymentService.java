@@ -16,5 +16,8 @@ public interface PaymentService {
 
     Payment markAsPaid(Long orderId, PaymentMethod method);
 
+    // ใช้ตอน order ถูกยกเลิก: ถ้าจ่ายแล้วให้เปลี่ยนเป็น REFUNDED (รายงานยอดขายนับเฉพาะ PAID)
+    void refundIfPaid(Long orderId);
+
     Page<Payment> findAll(Pageable pageable);
 }

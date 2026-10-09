@@ -13,6 +13,7 @@ public record OrderStatusHistoryResponse(
         OrderStatus newStatus,
 
         Long changedBy,
+        String changedByName,
 
         LocalDateTime changedAt
 
