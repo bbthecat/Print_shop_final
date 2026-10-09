@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Set;
 
 @Controller
 @RequestMapping("/orders")
@@ -176,5 +177,8 @@ public class OrderWebController {
         model.addAttribute("services", catalogQueryService.findAllActivePrintServices());
         model.addAttribute("addons", catalogQueryService.findAllActiveAddonServices());
         model.addAttribute("promotions", promotionService.findAllActive());
+        Long userId = currentUserProvider.getCurrentUserId();
+        model.addAttribute("usedPromotionIds",
+                userId == null ? Set.of() : orderQueryService.getUsedPromotionIds(userId));
     }
 }

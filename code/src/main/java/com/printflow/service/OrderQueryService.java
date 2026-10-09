@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Set;
 
 public interface OrderQueryService {
 
@@ -23,6 +24,9 @@ public interface OrderQueryService {
 
     // จำนวน order ในสถานะนั้นทั้งหมด (ไม่จำกัดวันที่) เช่น งานที่ยังรอยืนยัน
     long countByStatus(OrderStatus status);
+
+    // id ของโค้ดโปรโมชันที่ลูกค้าคนนี้ใช้ไปแล้ว (ไม่นับ order ที่ยกเลิก)
+    Set<Long> getUsedPromotionIds(Long userId);
 
     Page<OrderResponse> getAllByStatus(
             OrderStatus status,

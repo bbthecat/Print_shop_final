@@ -116,12 +116,16 @@
                 <div th:if="${promotions != null and !promotions.isEmpty()}">
                     <div th:each="promo : ${promotions}" style="margin-bottom: 12px; padding: 10px; background: var(--bg); border-radius: 6px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <button type="button"
+                            <button type="button" th:with="used=${usedPromotionIds != null and usedPromotionIds.contains(promo.id)}"
                                     style="background: none; border: none; padding: 0; font: inherit; font-weight: 700; color: var(--primary); cursor: pointer;"
+                                    th:style="${used} ? 'background: none; border: none; padding: 0; font: inherit; font-weight: 700; color: var(--muted); text-decoration: line-through; cursor: not-allowed;'"
                                     th:data-code="${promo.code}"
+                                    th:disabled="${used}"
                                     onclick="document.getElementById('promotionCode').value = this.dataset.code"
-                                    title="คลิกเพื่อใช้โค้ดนี้"
+                                    th:title="${used} ? 'คุณใช้โค้ดนี้ไปแล้ว' : 'คลิกเพื่อใช้โค้ดนี้'"
                                     th:text="${promo.code}">CODE</button>
+                            <span th:if="${usedPromotionIds != null and usedPromotionIds.contains(promo.id)}"
+                                  class="badge badge-inactive">ใช้แล้ว</span>
                             <span class="badge badge-active"
                                   th:text="${promo.discountType.name() == 'PERCENTAGE' ? 'ลด ' + promo.discountValue + '%' : 'ลด ' + promo.discountValue + ' บาท'}">
                             </span>
