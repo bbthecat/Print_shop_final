@@ -21,6 +21,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +62,16 @@ public class StaffOrderPageController {
 
         model.addAttribute("orders", orders);
         model.addAttribute("nextStatusById", nextStatusById);
+        // จำนวนงานในแต่ละสถานะ สำหรับแท็บด้านบน
+        Map<OrderStatus, Long> statusCounts = new EnumMap<>(OrderStatus.class);
+        long totalCount = 0;
+        for (OrderStatus s : OrderStatus.values()) {
+            long count = orderQueryService.countByStatus(s);
+            statusCounts.put(s, count);
+            totalCount += count;
+        }
+        model.addAttribute("statusCounts", statusCounts);
+        model.addAttribute("totalCount", totalCount);
         model.addAttribute("statuses", OrderStatus.values());
         model.addAttribute("selectedStatus", status);
         return "staff/orders";
