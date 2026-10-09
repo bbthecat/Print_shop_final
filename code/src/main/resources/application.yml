@@ -18,6 +18,11 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  data:
+    web:
+      pageable:
+        # กัน client ขอ ?size=100000 แล้วดึงข้อมูลทั้งตารางในครั้งเดียว
+        max-page-size: 100
 
 springdoc:
   swagger-ui:
