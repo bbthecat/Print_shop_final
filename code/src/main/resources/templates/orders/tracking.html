@@ -19,19 +19,17 @@
 
     <div th:replace="~{fragments/layout :: flash}"></div>
 
-    <section style="max-width: 820px;">
-        <ol th:replace="~{fragments/layout :: progress(${order.status})}"></ol>
+    <section class="track-card crop" style="max-width: 900px;">
+        <div class="progress-lg"><ol th:replace="~{fragments/layout :: progress(${order.status})}"></ol></div>
 
         <div th:if="${order.status.name() == 'CANCELLED'}" class="alert alert-error" style="margin-top: 24px;">
             <strong>คำสั่งซื้อนี้ถูกยกเลิกแล้ว</strong> — ไม่มีการดำเนินการต่อ ถ้าชำระเงินไปแล้วร้านจะคืนเงินให้
         </div>
 
-        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);">
-            <p style="margin: 0 0 6px;">สถานะปัจจุบัน:
-                <span class="badge" th:classappend="'status-' + ${order.status.name().toLowerCase()}"
-                      th:text="${order.status.label}">รอร้านยืนยัน</span>
-            </p>
-            <p class="muted" style="margin: 0;">
+        <div class="track-now">
+            <span class="badge" th:classappend="'status-' + ${order.status.name().toLowerCase()}"
+                  th:text="${order.status.label}">รอร้านยืนยัน</span>
+            <p>
                 <span th:if="${order.status.name() == 'PENDING'}">คำสั่งซื้อเข้าระบบแล้ว กำลังรอพนักงานของร้านยืนยันเพื่อเริ่มงาน</span>
                 <span th:if="${order.status.name() == 'CONFIRMED'}">ร้านรับงานแล้ว กำลังจัดคิวเข้าเครื่องพิมพ์</span>
                 <span th:if="${order.status.name() == 'PROCESSING'}">งานของคุณกำลังพิมพ์และทำงานเก็บเล่ม</span>
