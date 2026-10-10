@@ -46,8 +46,7 @@ node "Neon — Singapore" as Neon {
 
 Src --> Repo : git push
 Repo --> Actions : push / PR
-Actions --> Render : deploy hook\n(main)
-Repo --> Render : auto-deploy\n(develop)
+Actions --> Render : deploy hook\n(main, หลัง test ผ่าน)
 User --> Jar : HTTPS
 Jar --> Pg : JDBC + TLS
 Jar ..> Env : อ่านค่า
