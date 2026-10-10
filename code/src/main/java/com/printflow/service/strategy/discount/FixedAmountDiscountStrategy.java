@@ -22,6 +22,8 @@ public class FixedAmountDiscountStrategy implements DiscountStrategy {
         }
 
         // ยอดไม่ถึงขั้นต่ำ -> คืนค่าส่วนลด 0
+        // ตอนสั่งงานจริง OrderCommandServiceImpl ตรวจขั้นต่ำและแจ้ง error ก่อนแล้ว
+        // เช็กตรงนี้ไว้กันพลาด เผื่อ Strategy ถูกเรียกจากที่อื่นโดยไม่ผ่าน Service
         if (promotion.getMinOrderAmount() != null && subtotal.compareTo(promotion.getMinOrderAmount()) < 0) {
             return BigDecimal.ZERO;
         }
