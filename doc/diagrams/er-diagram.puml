@@ -24,15 +24,12 @@ entity "users" as users {
 }
 
 entity "user_profiles" as user_profiles {
-  * id : BIGSERIAL <<PK>>
+  * id : BIGINT <<PK, FK>>
   --
-  * user_id : BIGINT <<FK, UQ>>
   * first_name : VARCHAR(50)
   * last_name : VARCHAR(50)
-  phone : VARCHAR(20)
+  phone_number : VARCHAR(20)
   address : TEXT
-  * created_at : TIMESTAMP
-  * updated_at : TIMESTAMP
 }
 
 entity "print_services" as print_services {
@@ -89,6 +86,7 @@ entity "print_items" as print_items {
   * order_id : BIGINT <<FK>>
   * service_id : BIGINT <<FK>>
   * quantity : INTEGER
+  * page_count : INTEGER
   * unit_price : NUMERIC(12,2)
   * subtotal : NUMERIC(12,2)
 }

@@ -15,7 +15,7 @@ PrintFlow เป็นเว็บแอปสำหรับร้านรั�
 
 | ลำดับ | ชื่อ-นามสกุล | รหัสนักศึกษา | Section | Branch | หน้าที่รับผิดชอบ |
 |---|---|---|---|---|---|
-| 1 | นายณัฐชา อรรคฮาต | 673380582-6 | 04 | `Nattacha-673380582-6-sec.4` | **P1** — Auth, User, Admin, Report, Security, Exception Handling, DevOps (Docker, CI/CD, Deploy), README |
+| 1 | นายณัฐชา อรรคฮาต | 673380582-6 | 04 | `Nattacha_673380582-6_04` | **P1** — Auth, User, Admin, Report, Security, Exception Handling, DevOps (Docker, CI/CD, Deploy), README |
 | 2 | นายปฏิภาณ ปานทะเล | 673380411-3 | 04 | `Patipan_673380411-3_04` | **P2** — Service, Addon, Promotion, Strategy Pattern (Pricing / Discount), ER Diagram, Data Dictionary |
 | 3 | นายรัชชานนท์ ประดับแก้ว | 673380599-9 | 04 | `Ratchanon_673380599-9_04` | **P3** — Order, Item, File, Chain of Responsibility (Validation), Class / Activity Diagram |
 | 4 | นายอาณัฐ อารีย์ | 673380432-5 | 04 | `arnat_6733804325_04` | **P4** — Order Status (State Pattern), Observer, Notification, Payment, State Diagram, Slide |
@@ -73,7 +73,7 @@ Diagram อื่นๆ อยู่ใน [`doc/diagrams/`](doc/diagrams/) แ�
 | `print_orders`, `print_items`, `print_item_addons`, `order_promotions`, `order_files` | P3 | User 1:N Order, Order 1:N Item, Item M:N Addon, Order M:N Promotion, Order 1:N File |
 | `payments`, `order_status_histories`, `notifications` | P4 | Order 1:1 Payment, Order 1:N History |
 
-Schema ถูกสร้างด้วย Flyway จาก `code/src/main/resources/db/migration/` (V1–V7)
+Schema ถูกสร้างด้วย Flyway จาก `code/src/main/resources/db/migration/` (V1–V9)
 
 | Migration | เนื้อหา |
 |---|---|
@@ -84,6 +84,8 @@ Schema ถูกสร้างด้วย Flyway จาก `code/src/main/reso
 | V5 | ข้อมูลตั้งต้น (บริการ บริการเสริม โปรโมชัน) |
 | V6 | `print_items.page_count` (จำนวนหน้าต่อชุด) |
 | V7 | เติม payment ให้ order เก่าที่ยังไม่มี |
+| V8 | แก้คำอธิบาย Lamination เป็นคิดต่อชุด |
+| V9 | เพิ่ม FK จาก print_items, print_item_addons, order_promotions ไปยังบริการและโปรโมชัน |
 
 ## Installation & Setup
 
@@ -198,7 +200,7 @@ mvn clean verify                       # build + รัน test ทั้งห�
 mvn surefire-report:report-only        # สร้างรายงาน HTML ที่ target/reports/surefire.html
 ```
 
-- **241 test ผ่านทั้งหมด** (30+ คลาส) — สรุปผลอยู่ที่ [`test/test-report/`](test/test-report/)
+- **257 test ผ่านทั้งหมด** (30+ คลาส) — สรุปผลอยู่ที่ [`test/test-report/`](test/test-report/)
 - Unit test ของ Service ใช้ JUnit 5 + Mockito (สูตรราคา/ส่วนลดใช้ Strategy ตัวจริง)
 - Test ของ Controller ใช้ `@WebMvcTest` (รวมการทดสอบสิทธิ์ตาม role, ห้ามดูข้อมูลของคนอื่น และ CSRF)
 - Test ของ Repository ใช้ `@DataJpaTest` + H2 (`OrderRepositoryTest`, `ReportRepositoryTest`)
