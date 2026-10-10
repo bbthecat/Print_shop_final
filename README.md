@@ -73,7 +73,7 @@ Diagram อื่นๆ อยู่ใน [`doc/diagrams/`](doc/diagrams/) แ�
 | `print_orders`, `print_items`, `print_item_addons`, `order_promotions`, `order_files` | P3 | User 1:N Order, Order 1:N Item, Item M:N Addon, Order M:N Promotion, Order 1:N File |
 | `payments`, `order_status_histories`, `notifications` | P4 | Order 1:1 Payment, Order 1:N History |
 
-Schema ถูกสร้างด้วย Flyway จาก `code/src/main/resources/db/migration/` (V1–V8)
+Schema ถูกสร้างด้วย Flyway จาก `code/src/main/resources/db/migration/` (V1–V9)
 
 | Migration | เนื้อหา |
 |---|---|
@@ -85,6 +85,7 @@ Schema ถูกสร้างด้วย Flyway จาก `code/src/main/reso
 | V6 | `print_items.page_count` (จำนวนหน้าต่อชุด) |
 | V7 | เติม payment ให้ order เก่าที่ยังไม่มี |
 | V8 | แก้คำอธิบาย Lamination เป็นคิดต่อชุด |
+| V9 | เพิ่ม FK จาก print_items, print_item_addons, order_promotions ไปยังบริการและโปรโมชัน |
 
 ## Installation & Setup
 
