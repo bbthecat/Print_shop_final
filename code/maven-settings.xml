@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ใช้ตอน docker build: repo.maven.apache.org ตอบ 429 กับ IP ของเครื่อง build บน Render
+     จึงดึง library จาก mirror ของ Maven Central ที่ Google ดูแลแทน (ไฟล์ชุดเดียวกัน) -->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
+    <mirrors>
+        <mirror>
+            <id>google-maven-central</id>
+            <name>Google Maven Central mirror</name>
+            <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+            <mirrorOf>central</mirrorOf>
+        </mirror>
+    </mirrors>
+</settings>
