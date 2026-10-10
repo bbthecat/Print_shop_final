@@ -43,19 +43,16 @@
 
 ## 2. ตาราง `user_profiles`
 เก็บข้อมูลส่วนบุคคลของผู้ใช้งาน (ความสัมพันธ์ 1:1 กับ `users`)
-* **PrimaryKey:** `id`
-* **Foreign Key:** `user_id` อ้างอิงไปยัง `users(id)` (ON DELETE CASCADE, Unique)
+* **PrimaryKey:** `id` (ใช้รหัสเดียวกับ `users.id` แบบ Shared Primary Key)
+* **Foreign Key:** `id` อ้างอิงไปยัง `users(id)` (ON DELETE CASCADE)
 
 | ชื่อฟิลด์ | ชนิดข้อมูล | ค่าว่าง (Null) | ค่าเริ่มต้น (Default) | คำอธิบาย |
 |---|---|:---:|---|---|
-| `id` | BIGSERIAL | No | Auto increment | รหัสโปรไฟล์ (PK) |
-| `user_id` | BIGINT | No | — | รหัสผู้ใช้เจ้าของโปรไฟล์ (FK, Unique) |
+| `id` | BIGINT | No | — | รหัสผู้ใช้เจ้าของโปรไฟล์ (PK และ FK ไปยัง `users.id`) |
 | `first_name` | VARCHAR(50) | No | — | ชื่อจริง |
 | `last_name` | VARCHAR(50) | No | — | นามสกุล |
-| `phone` | VARCHAR(20) | Yes | — | หมายเลขโทรศัพท์ |
-| `address` | TEXT | Yes | — | ที่อยู่สำหรับติดต่อหรือจัดส่ง |
-| `created_at` | TIMESTAMP | No | `CURRENT_TIMESTAMP` | วันและเวลาที่สร้างโปรไฟล์ |
-| `updated_at` | TIMESTAMP | No | `CURRENT_TIMESTAMP` | วันและเวลาที่แก้ไขข้อมูลล่าสุด |
+| `phone_number` | VARCHAR(20) | Yes | — | หมายเลขโทรศัพท์ |
+| `address` | TEXT | Yes | — | ที่อยู่สำหรับติดต่อ |
 
 ---
 
@@ -143,6 +140,7 @@
 | `order_id` | BIGINT | No | — | รหัสคำสั่งพิมพ์หลัก (FK) |
 | `service_id` | BIGINT | No | — | รหัสบริการงานพิมพ์ที่เลือก (FK) |
 | `quantity` | INTEGER | No | — | จำนวนชุดที่สั่งพิมพ์ (Copy Count) |
+| `page_count` | INTEGER | No | `1` | จำนวนหน้าต่อ 1 ชุด (เพิ่มใน V6, CHECK > 0) |
 | `unit_price` | NUMERIC(12,2) | No | — | ราคาเฉลี่ยต่อชุด (บาท) |
 | `subtotal` | NUMERIC(12,2) | No | — | ยอดรวมของรายการนี้ (บาท) |
 
