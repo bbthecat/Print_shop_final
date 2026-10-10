@@ -2,7 +2,7 @@
 
 PrintFlow เป็นเว็บแอปสำหรับร้านรับพิมพ์เอกสาร ลูกค้าสมัครสมาชิก เลือกบริการพิมพ์ (ขาวดำ / สี / รูปภาพ) พร้อมบริการเสริม
 อัปโหลดไฟล์ ใช้โค้ดโปรโมชั่น และติดตามสถานะคำสั่งพิมพ์ได้แบบเรียลไทม์
-พนักงานรับงาน เปลี่ยนสถานะ (PENDING → CONFIRMED → PROCESSING → READY → COMPLETED) และบันทึกการชำระเงิน
+พนักงานรับงาน เปลี่ยนสถานะ (PENDING → CONFIRMED → PROCESSING → READY → COMPLETED หรือ CANCELLED) และบันทึกการชำระเงิน
 ผู้ดูแลระบบจัดการบริการ โปรโมชั่น บัญชีผู้ใช้ และดูรายงานสรุป
 พัฒนาด้วย Spring Boot แบบ Layered Architecture พร้อม REST API (Swagger) และหน้าเว็บ Thymeleaf
 
@@ -58,7 +58,25 @@ Domain         domain/entity  ·  domain/enums
 
 ![Component Diagram](doc/diagrams/component.png)
 
-Diagram อื่นๆ อยู่ใน [`doc/diagrams/`](doc/diagrams/) และคำอธิบาย Use Case อยู่ที่ [`doc/use-case-description.md`](doc/use-case-description.md)
+**เอกสารประกอบ**
+
+| เอกสาร | ไฟล์ |
+|---|---|
+| SOLID Principles (ไฟล์ + บรรทัด + เหตุผล) | [`doc/solid-analysis.md`](doc/solid-analysis.md) |
+| Design Patterns (ปัญหาที่แก้ + คลาสที่ใช้ + Class Diagram) | [`doc/design-patterns.md`](doc/design-patterns.md) |
+| Use Case Description (14 use case) | [`doc/use-case-description.md`](doc/use-case-description.md) |
+| Data Dictionary (13 ตาราง) | [`doc/data-dictionary.md`](doc/data-dictionary.md) |
+| Diagram ทั้งหมด (Use Case, Domain Model, Class, Sequence ×3, Activity, ER, Component, Deployment, State) | [`doc/diagrams/`](doc/diagrams/) |
+| สไลด์นำเสนอ | [`doc/slide/PrintFlow-presentation.pdf`](doc/slide/PrintFlow-presentation.pdf) |
+
+**Design Patterns ที่ใช้ (GoF Behavioral)**
+
+| Pattern | ใช้ทำอะไร | ผู้รับผิดชอบ |
+|---|---|---|
+| Strategy | สูตรราคา 3 แบบ (ขาวดำ / สี / รูปภาพ) และส่วนลด 2 แบบ (เปอร์เซ็นต์ / บาท) | P2 |
+| Chain of Responsibility | ตรวจคำสั่งพิมพ์ 5 ขั้นก่อนบันทึก | P3 |
+| State | กฎการเปลี่ยนสถานะของคำสั่งพิมพ์ 6 สถานะ | P4 |
+| Observer | Spring Event 2 ตัว → listener 5 ตัว (สร้าง payment, แจ้งเตือน, บันทึกประวัติ, คืนเงิน) | P4 |
 
 ## Database Design (ER Diagram)
 
@@ -98,8 +116,8 @@ Schema ถูกสร้างด้วย Flyway จาก `code/src/main/reso
 ```bash
 git clone https://github.com/bbthecat/Print_shop_final.git
 cd Print_shop_final
-git checkout develop
 ```
+`main` คือเวอร์ชันที่ส่งมอบ (release v1.0) ส่วน `develop` คือ branch ที่รวมงานระหว่างพัฒนา
 
 **Environment Variables** (มีค่า default สำหรับรันในเครื่องอยู่แล้ว)
 
@@ -212,8 +230,9 @@ mvn surefire-report:report-only        # สร้างรายงาน HTML 
 - **App:** https://printflow-ogm4.onrender.com
 - **Swagger UI:** https://printflow-ogm4.onrender.com/swagger-ui.html
 - **Hosting:** Render (Docker, Singapore) + Neon PostgreSQL (Singapore)
-- **CI/CD:** GitHub Actions — `mvn clean verify` ทุก push/PR · merge เข้า `main` (release) จะสั่ง deploy ผ่าน Render Deploy Hook
-- Production deploy จาก branch `main` (กำหนดใน `render.yaml`, ปิด auto-deploy) — Render deploy เฉพาะเมื่อ GitHub Actions รัน test บน `main` ผ่านแล้วเรียก Deploy Hook
+- **CI/CD:** GitHub Actions รัน `mvn clean verify` ทุก push / PR เข้า `develop` และ `main`
+- **Production deploy จาก `main` เท่านั้น** (`render.yaml`: `branch: main`, `autoDeploy: false`) — เมื่อ push เข้า `main` และ test ผ่าน job `deploy` จะเรียก Render Deploy Hook (URL เก็บใน GitHub Secret `RENDER_DEPLOY_HOOK_URL`)
+- ค่าลับของ production (`DB_URL`, `DB_USER`, `DB_PASSWORD`, `ADMIN_*`) ตั้งไว้ใน Environment ของ Render ไม่อยู่ใน git
 - หมายเหตุ: Render free plan จะหลับเมื่อไม่มีการใช้งาน ~15 นาที การเปิดครั้งแรกอาจใช้เวลา 30–60 วินาที
 
 ![Deployment Diagram](doc/diagrams/deployment.png)
@@ -247,12 +266,14 @@ Print_shop_final/
 │       │   └── validation/         # Chain of Responsibility (ตรวจคำสั่งพิมพ์)
 │       ├── main/resources/
 │       │   ├── application.yml, application-prod.yml
-│       │   ├── db/migration/       # Flyway V1..Vn
+│       │   ├── db/migration/       # Flyway V1–V9
 │       │   ├── templates/          # Thymeleaf
 │       │   └── static/css/
 │       └── test/java/              # JUnit 5 + Mockito + WebMvcTest + DataJpaTest
 ├── test/test-report/               # สรุปผลการทดสอบ + surefire report
-├── doc/                            # เอกสาร, diagrams/, slide/
+├── doc/                            # solid-analysis, design-patterns, use-case, data-dictionary
+│   ├── diagrams/                   # .puml / .png ของทุก diagram
+│   └── slide/                      # สไลด์นำเสนอ (PDF)
 ├── img/                            # ไฟล์มัลติมีเดีย
 ├── render.yaml                     # Render Blueprint
 └── README.md
