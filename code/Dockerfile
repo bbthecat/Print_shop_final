@@ -1,11 +1,11 @@
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /workspace/app
 
-COPY pom.xml .
-RUN mvn -B dependency:go-offline
+COPY maven-settings.xml pom.xml ./
+RUN mvn -B -s maven-settings.xml dependency:go-offline
 
 COPY src src
-RUN mvn -B package -DskipTests
+RUN mvn -B -s maven-settings.xml package -DskipTests
 
 FROM eclipse-temurin:17-jre-jammy
 COPY --from=build /workspace/app/target/*.jar app.jar
