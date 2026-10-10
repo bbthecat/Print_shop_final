@@ -103,7 +103,7 @@ class OrderControllerTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         // เจ้าของ order ต้องเป็นคนที่ login อยู่ ไม่ใช่ค่าจาก body
         verify(commandService).createOrder(eq(7L), any(OrderCreateRequest.class));
