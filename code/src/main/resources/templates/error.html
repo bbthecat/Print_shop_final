@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('เกิดข้อผิดพลาด')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<!-- Spring Boot ส่ง status มาให้หน้า /error อัตโนมัติ (403, 404, 409, 500 ...) -->
+<main class="container">
+    <section class="card error-page" th:with="code=${status} ?: 500">
+        <p class="error-code" th:text="${code}">404</p>
+        <h1 th:switch="${code}">
+            <span th:case="400">ข้อมูลที่ส่งมาไม่ถูกต้อง</span>
+            <span th:case="403">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</span>
+            <span th:case="404">ไม่พบหน้าหรือข้อมูลที่ต้องการ</span>
+            <span th:case="409">ทำรายการนี้ไม่ได้ในสถานะปัจจุบัน</span>
+            <span th:case="*">ระบบขัดข้องชั่วคราว</span>
+        </h1>
+        <p class="muted" th:switch="${code}">
+            <span th:case="403">หน้านี้สำหรับผู้ใช้ที่มีสิทธิ์เฉพาะ หรือเป็นข้อมูลของผู้ใช้คนอื่น</span>
+            <span th:case="404">ข้อมูลอาจถูกลบไปแล้ว หรือที่อยู่ (URL) ไม่ถูกต้อง</span>
+            <span th:case="*">กรุณาลองใหม่อีกครั้ง หากยังพบปัญหาโปรดติดต่อร้าน</span>
+        </p>
+        <a class="btn" th:href="@{/}">กลับหน้าแรก</a>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

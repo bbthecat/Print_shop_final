@@ -1,0 +1,54 @@
+@startuml deployment
+!pragma layout smetana
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam ArrowColor #2E5C8A
+skinparam node {
+  BackgroundColor #EEF4FB
+  BorderColor #2E5C8A
+  FontColor #1F3A5F
+}
+skinparam artifact {
+  BackgroundColor #FFFFFF
+  BorderColor #2E5C8A
+}
+skinparam database {
+  BackgroundColor #FFF4E5
+  BorderColor #B26A00
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9A227
+}
+left to right direction
+
+title PrintFlow — Deployment Diagram
+
+actor "User\n(Browser)" as User
+
+node "Developer Machine" as Dev {
+  artifact "Source code\n+ docker compose" as Src
+}
+
+node "GitHub" as GitHub {
+  artifact "Repository\n(main / develop)" as Repo
+  artifact "GitHub Actions\nbuild → test → deploy" as Actions
+}
+
+node "Render — Singapore\n(Web Service, Docker)" as Render {
+  artifact "printflow.jar\nSpring Boot 3 / JRE 17" as Jar
+  artifact "Environment (secrets)\nDB_URL, DB_USER, DB_PASSWORD\nSPRING_PROFILES_ACTIVE, ADMIN_*" as Env
+}
+
+node "Neon — Singapore" as Neon {
+  database "PostgreSQL" as Pg
+}
+
+Src --> Repo : git push
+Repo --> Actions : push / PR
+Actions --> Render : deploy hook\n(main, หลัง test ผ่าน)
+User --> Jar : HTTPS
+Jar --> Pg : JDBC + TLS
+Jar ..> Env : อ่านค่า
+
+@enduml

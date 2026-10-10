@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('บริการงานพิมพ์')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <h1 style="margin: 0;">บริการงานพิมพ์และอัตราค่าบริการ</h1>
+            <p class="muted" style="margin: 4px 0 0 0;">เลือกดูบริการพิมพ์ บริการเสริม และโปรโมชันสุดพิเศษของ PrintFlow</p>
+        </div>
+        <div sec:authorize="hasRole('ADMIN')">
+            <a th:href="@{/admin/services}" class="btn btn-secondary">จัดการบริการ (Admin)</a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <!-- โปรโมชันเด่น -->
+    <section th:if="${promotions != null and !promotions.isEmpty()}" style="margin-bottom: 32px;">
+        <h2>โปรโมชันและส่วนลดพิเศษ</h2>
+        <p class="muted" style="margin: -6px 0 16px;">ใช้ได้คนละ 1 ครั้งต่อโค้ด กดเลือกโค้ดได้ตอนสั่งพิมพ์</p>
+        <div class="coupons">
+            <div th:each="promo : ${promotions}" class="coupon">
+                <div class="coupon-body">
+                    <div class="coupon-code" th:text="${promo.code}">CODE</div>
+                    <p th:text="${promo.description}">รายละเอียดโปรโมชัน</p>
+                    <p th:if="${promo.minOrderAmount != null and promo.minOrderAmount > 0}"
+                       th:text="'สั่งครบ ' + ${#numbers.formatDecimal(promo.minOrderAmount, 1, 'COMMA', 0, 'POINT')} + ' บาท'">สั่งครบ 100 บาท</p>
+                </div>
+                <div class="coupon-value">
+                    <strong th:text="${promo.discountType.name() == 'PERCENTAGE'} ? ${#numbers.formatDecimal(promo.discountValue, 1, 0)} + '%' : ${#numbers.formatDecimal(promo.discountValue, 1, 0)} + '฿'">10%</strong>
+                    <span>ส่วนลด</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- บริการงานพิมพ์หลัก -->
+    <section style="margin-bottom: 32px;">
+        <h2>บริการงานพิมพ์หลัก</h2>
+        <div class="card" style="padding: 0; overflow-x: auto;">
+            <table class="table" style="margin: 0; width: 100%;">
+                <thead>
+                <tr>
+                    <th>บริการ</th>
+                    <th>ประเภทราคา</th>
+                    <th>รายละเอียด</th>
+                    <th style="text-align: right;">ราคาเริ่มต้น (บาท/หน้า)</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="service : ${services}">
+                    <td><strong th:text="${service.name}">ชื่อบริการ</strong></td>
+                    <td>
+                        <span class="badge" th:text="${service.pricingType.label}">ประเภท</span>
+                    </td>
+                    <td class="muted" th:text="${service.description != null ? service.description : '-'}">-</td>
+                    <td style="text-align: right; font-weight: bold; color: var(--primary);"
+                        th:text="${#numbers.formatDecimal(service.basePrice, 1, 2)} + ' บาท'">0.00 บาท</td>
+                </tr>
+                <tr th:if="${services == null or services.isEmpty()}">
+                    <td colspan="4" class="text-center muted" style="padding: 24px;">ยังไม่มีรายการบริการในขณะนี้</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- บริการเสริม (Addons) -->
+    <section style="margin-bottom: 32px;">
+        <h2>บริการเสริม (Addon Services)</h2>
+        <div class="card" style="padding: 0; overflow-x: auto;">
+            <table class="table" style="margin: 0; width: 100%;">
+                <thead>
+                <tr>
+                    <th>บริการเสริม</th>
+                    <th>รายละเอียด</th>
+                    <th style="text-align: right;">ราคา (บาท)</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="addon : ${addons}">
+                    <td><strong th:text="${addon.name}">เข้าเล่ม</strong></td>
+                    <td class="muted" th:text="${addon.description != null ? addon.description : '-'}">-</td>
+                    <td style="text-align: right; font-weight: bold; color: var(--primary);"
+                        th:text="${#numbers.formatDecimal(addon.price, 1, 2)} + ' บาท'">0.00 บาท</td>
+                </tr>
+                <tr th:if="${addons == null or addons.isEmpty()}">
+                    <td colspan="3" class="text-center muted" style="padding: 24px;">ยังไม่มีบริการเสริมในขณะนี้</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

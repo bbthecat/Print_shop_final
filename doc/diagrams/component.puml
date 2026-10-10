@@ -1,0 +1,70 @@
+@startuml component
+!pragma layout smetana
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam ArrowColor #2E5C8A
+skinparam component {
+  BackgroundColor #EEF4FB
+  BorderColor #2E5C8A
+}
+skinparam package {
+  BorderColor #1F3A5F
+  FontColor #1F3A5F
+}
+skinparam database {
+  BackgroundColor #FFF4E5
+  BorderColor #B26A00
+}
+top to bottom direction
+
+title PrintFlow — Component Diagram (Layered Architecture)
+
+actor "Browser / API Client" as Client
+
+package "PrintFlow (Spring Boot 3)" {
+
+  package "Security" as SecLayer {
+    [SecurityFilterChain\nform login + HTTP Basic + roles] as Sec
+    [UserDetailsServiceImpl\nCurrentUserProvider] as SecUser
+  }
+
+  package "Presentation Layer" as PresLayer {
+    [Web Controllers\n(Thymeleaf)] as WebCtl
+    [REST Controllers\n/api/v1/**] as ApiCtl
+    [GlobalExceptionHandler] as ExHandler
+  }
+
+  package "Service Layer" as SvcLayer {
+    [Customer / AdminUser] as UserSvc
+    [Service Catalog\n<<Strategy>>] as CatalogSvc
+    [Order + Validation\n<<Chain of Responsibility>>] as OrderSvc
+    [OrderStatus\n<<State>>] as StatusSvc
+    [Status Listeners\n<<Observer>>] as Listeners
+    [Payment / Notification\nReport / File] as OtherSvc
+  }
+
+  package "Data Access Layer" as DataLayer {
+    [DTO + Mapper] as Mapper
+    [Spring Data JPA\nRepositories] as Repo
+    [Flyway Migrations] as Flyway
+  }
+}
+
+database "PostgreSQL (Neon)" as DB
+
+Client --> Sec : HTTPS
+Sec ..> SecUser
+Sec -down-> WebCtl
+Sec -down-> ApiCtl
+ApiCtl .right.> ExHandler : exception
+WebCtl -down-> UserSvc : เรียกผ่าน interface
+ApiCtl -down-> OrderSvc : เรียกผ่าน interface
+OrderSvc -right-> CatalogSvc : คำนวณราคา
+StatusSvc .right.> Listeners : event
+UserSvc -down-> Mapper
+OrderSvc -down-> Repo
+Repo --> DB : JDBC
+Flyway --> DB : migrate
+
+@enduml

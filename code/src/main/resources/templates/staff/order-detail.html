@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('รายละเอียดคำสั่งซื้อ')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div class="page-header">
+        <div>
+            <a class="back-link" th:href="@{/staff/orders}">กลับไปคิวงาน</a>
+            <h1 th:text="'คำสั่งซื้อ ' + ${order.orderNumber()}">คำสั่งซื้อ</h1>
+            <p class="lead">
+                <span class="badge" th:classappend="'status-' + ${order.status().name().toLowerCase()}"
+                      th:text="${order.status().label}">รอร้านยืนยัน</span>
+            </p>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="two-col">
+        <div class="stack">
+            <section>
+                <h2>รายการงานพิมพ์</h2>
+                <div class="card flush">
+                    <table style="min-width: 560px;">
+                        <thead>
+                        <tr>
+                            <th>บริการ</th>
+                            <th>บริการเสริม</th>
+                            <th class="num">หน้า/ชุด</th>
+                            <th class="num">จำนวนชุด</th>
+                            <th class="num">ราคา/ชุด (บาท)</th>
+                            <th class="num">รวม (บาท)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="item : ${order.items()}">
+                            <td th:text="${item.serviceName()}">-</td>
+                            <td th:text="${item.addonNames().isEmpty()} ? '-' : ${#strings.listJoin(item.addonNames(), ', ')}">-</td>
+                            <td class="num" th:text="${item.pageCount()}">1</td>
+                            <td class="num" th:text="${item.quantity()}">0</td>
+                            <td class="num" th:text="${#numbers.formatDecimal(item.unitPrice(), 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                            <td class="num" th:text="${#numbers.formatDecimal(item.subtotal(), 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                        </tr>
+                        <tr th:if="${order.items().isEmpty()}">
+                            <td colspan="6" class="text-center muted">ไม่มีรายการ</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section>
+                <h2>ประวัติการเปลี่ยนสถานะ</h2>
+                <div class="card flush">
+                    <table style="min-width: 480px;">
+                        <thead>
+                        <tr>
+                            <th>จาก</th>
+                            <th>เป็น</th>
+                            <th>โดย</th>
+                            <th>เมื่อ</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="h : ${histories}">
+                            <td th:text="${h.oldStatus() != null} ? ${h.oldStatus().label} : '-'">-</td>
+                            <td th:text="${h.newStatus().label}">-</td>
+                            <td th:text="${h.changedByName()}">-</td>
+                            <td th:text="${#temporals.format(h.changedAt(), 'dd/MM/yyyy HH:mm')}">-</td>
+                        </tr>
+                        <tr th:if="${histories.isEmpty()}">
+                            <td colspan="4" class="text-center muted">ยังไม่มีการเปลี่ยนสถานะ</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <aside class="slip-frame stack">
+            <div class="slip">
+                <div class="slip-head">
+                    <span class="slip-title">สรุปยอด</span>
+                    <span class="slip-note" th:text="${#temporals.format(order.createdAt(), 'dd/MM/yyyy HH:mm')}">-</span>
+                </div>
+                <div class="slip-lines">
+                    <div class="slip-line"><span>ลูกค้า</span><span class="leader"></span><strong th:text="${order.customerName()}">customer01</strong></div>
+                    <th:block th:if="${order.discountAmount() != null and order.discountAmount().signum() > 0}">
+                        <div class="slip-line"><span>ยอดก่อนส่วนลด</span><span class="leader"></span>
+                            <span th:text="${#numbers.formatDecimal(order.subtotal(), 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</span></div>
+                        <div class="slip-line discount"><span>ส่วนลด<span th:if="${order.promotionCode() != null}" th:text="' (โค้ด ' + ${order.promotionCode()} + ')'"> (โค้ด CODE)</span></span>
+                            <span class="leader"></span>
+                            <span th:text="'-' + ${#numbers.formatDecimal(order.discountAmount(), 1, 'COMMA', 2, 'POINT')} + ' บาท'">-0.00 บาท</span></div>
+                    </th:block>
+                </div>
+                <div class="slip-total">
+                    <span th:text="${order.discountAmount() != null and order.discountAmount().signum() > 0} ? 'ยอดสุทธิ:' : 'ยอดรวม:'">ยอดรวม:</span>
+                    <strong class="total-figure" th:text="${#numbers.formatDecimal(order.totalPrice(), 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</strong>
+                </div>
+            </div>
+
+            <section class="card">
+                <h2>เปลี่ยนสถานะ</h2>
+                <form th:if="${!statuses.isEmpty()}" th:action="@{/staff/orders/{id}/status(id=${order.id()})}" method="post">
+                    <div class="form-group">
+                        <label for="status">เปลี่ยนเป็น</label>
+                        <select id="status" name="status">
+                            <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}">ร้านรับงานแล้ว</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-block">บันทึกสถานะ</button>
+                </form>
+                <p th:if="${statuses.isEmpty()}" class="muted" style="margin: 0;">คำสั่งซื้อนี้สิ้นสุดแล้ว เปลี่ยนสถานะต่อไม่ได้</p>
+            </section>
+        </aside>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

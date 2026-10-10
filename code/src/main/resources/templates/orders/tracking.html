@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('ติดตามสถานะคำสั่งซื้อ ' + ${order.orderNumber})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div class="page-header">
+        <div>
+            <h1>ติดตามสถานะงานพิมพ์</h1>
+            <p class="muted" style="margin: 6px 0 0;" th:text="'คำสั่งซื้อ ' + ${order.orderNumber}">ORD-12345</p>
+        </div>
+        <div class="inline-controls">
+            <a th:href="@{'/orders/' + ${order.id}}" class="btn btn-secondary">ดูรายละเอียด</a>
+            <a th:href="@{/orders}" class="btn btn-secondary">งานของฉัน</a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <section class="track-card crop" style="max-width: 900px;">
+        <div class="progress-lg"><ol th:replace="~{fragments/layout :: progress(${order.status})}"></ol></div>
+
+        <div th:if="${order.status.name() == 'CANCELLED'}" class="alert alert-error" style="margin-top: 24px;">
+            <strong>คำสั่งซื้อนี้ถูกยกเลิกแล้ว</strong> — ไม่มีการดำเนินการต่อ ถ้าชำระเงินไปแล้วร้านจะคืนเงินให้
+        </div>
+
+        <div class="track-now">
+            <span class="badge" th:classappend="'status-' + ${order.status.name().toLowerCase()}"
+                  th:text="${order.status.label}">รอร้านยืนยัน</span>
+            <p>
+                <span th:if="${order.status.name() == 'PENDING'}">คำสั่งซื้อเข้าระบบแล้ว กำลังรอพนักงานของร้านยืนยันเพื่อเริ่มงาน</span>
+                <span th:if="${order.status.name() == 'CONFIRMED'}">ร้านรับงานแล้ว กำลังจัดคิวเข้าเครื่องพิมพ์</span>
+                <span th:if="${order.status.name() == 'PROCESSING'}">งานของคุณกำลังพิมพ์และทำงานเก็บเล่ม</span>
+                <span th:if="${order.status.name() == 'READY'}">งานพิมพ์เสร็จแล้ว มารับและชำระเงินที่หน้าร้านได้ทันที</span>
+                <span th:if="${order.status.name() == 'COMPLETED'}">ส่งมอบงานเรียบร้อย ขอบคุณที่ใช้บริการ PrintFlow</span>
+                <span th:if="${order.status.name() == 'CANCELLED'}">คำสั่งซื้อถูกยกเลิกแล้ว</span>
+            </p>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

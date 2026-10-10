@@ -1,0 +1,40 @@
+server:
+  port: ${PORT:8080}
+  servlet:
+    session:
+      cookie:
+        # เว็บอื่นส่ง POST มาพร้อม cookie login ไม่ได้ (กัน CSRF ของ /api/** ที่ปิด token ไว้)
+        same-site: lax
+
+spring:
+  application:
+    name: printflow
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/printflow}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  flyway:
+    # migration ของแต่ละคน (V1-V5) merge ไม่ตามลำดับเลข จึงยอมให้รันเลขที่น้อยกว่าตามหลังได้
+    out-of-order: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  data:
+    web:
+      pageable:
+        # กัน client ขอ ?size=100000 แล้วดึงข้อมูลทั้งตารางในครั้งเดียว
+        max-page-size: 100
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  admin:
+    username: ${ADMIN_USERNAME:}
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}

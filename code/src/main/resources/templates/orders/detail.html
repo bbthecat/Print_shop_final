@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('รายละเอียดคำสั่งซื้อ ' + ${order.orderNumber})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <a th:href="@{/orders}" class="muted">← งานของฉัน</a>
+
+    <div class="page-header" style="margin-top: 14px;">
+        <div>
+            <h1 th:if="${!order.items.isEmpty()}"
+                th:with="first=${order.items[0]}"
+                th:text="${first.serviceName} + ' · ' + ${first.pageCount} + ' หน้า × ' + ${first.quantity} + ' ชุด'">Document Color (A4) · 40 หน้า × 2 ชุด</h1>
+            <h1 th:if="${order.items.isEmpty()}">คำสั่งซื้อ</h1>
+            <p class="muted" style="margin: 6px 0 0;">
+                <span th:text="${order.orderNumber}">ORD-12345</span> ·
+                <span th:text="'สั่งเมื่อ ' + ${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}">สั่งเมื่อ 01/01/2026 10:00</span>
+            </p>
+        </div>
+        <div class="inline-controls">
+            <a th:href="@{'/orders/' + ${order.id} + '/tracking'}" class="btn btn-secondary">ติดตามสถานะ</a>
+            <!-- UC-07: ลูกค้ายกเลิกได้เฉพาะตอนที่ร้านยังไม่ยืนยัน -->
+            <form th:if="${order.status.name() == 'PENDING'}"
+                  th:action="@{/orders/{id}/cancel(id=${order.id})}" method="post" class="inline"
+                  onsubmit="return confirm('ยืนยันการยกเลิกคำสั่งซื้อนี้?');">
+                <button type="submit" class="btn btn-danger">ยกเลิกคำสั่งซื้อ</button>
+            </form>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="two-col">
+        <div>
+            <section style="margin-bottom: 40px;">
+                <h2>ตอนนี้งานอยู่ไหน</h2>
+                <ol th:replace="~{fragments/layout :: progress(${order.status})}"></ol>
+                <p th:if="${order.status.name() == 'CANCELLED'}" class="alert alert-error" style="margin-top: 18px;">คำสั่งซื้อนี้ถูกยกเลิกแล้ว</p>
+                <p class="muted" style="margin: 18px 0 0;">
+                    <span th:if="${order.status.name() == 'PENDING'}">ร้านจะตรวจไฟล์และยืนยันงาน เราจะแจ้งเตือนคุณเมื่อสถานะเปลี่ยน</span>
+                    <span th:if="${order.status.name() == 'CONFIRMED'}">ร้านรับงานแล้ว กำลังจัดคิวเข้าเครื่องพิมพ์</span>
+                    <span th:if="${order.status.name() == 'PROCESSING'}">กำลังพิมพ์และทำงานเก็บเล่ม</span>
+                    <span th:if="${order.status.name() == 'READY'}">งานเสร็จแล้ว มารับและชำระเงินที่ร้านได้เลย</span>
+                    <span th:if="${order.status.name() == 'COMPLETED'}">ส่งมอบงานเรียบร้อย ขอบคุณที่ใช้บริการ</span>
+                </p>
+            </section>
+
+            <section>
+                <h2>รายละเอียดงาน</h2>
+                <div class="table-scroll">
+                    <table style="min-width: 520px;">
+                        <thead>
+                        <tr>
+                            <th>บริการ</th>
+                            <th>งานเก็บเล่ม</th>
+                            <th style="text-align: right;">หน้า × ชุด</th>
+                            <th style="text-align: right;">ต่อชุด (บาท)</th>
+                            <th style="text-align: right;">รวม (บาท)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="item : ${order.items}">
+                            <td th:text="${item.serviceName}">Document B&amp;W (A4)</td>
+                            <td th:text="${item.addonNames.isEmpty()} ? '-' : ${#strings.listJoin(item.addonNames, ', ')}">Corner Staple</td>
+                            <td style="text-align: right;" th:text="${item.pageCount} + ' × ' + ${item.quantity}">20 × 1</td>
+                            <td style="text-align: right;" th:text="${#numbers.formatDecimal(item.unitPrice, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                            <td style="text-align: right;" th:text="${#numbers.formatDecimal(item.subtotal, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${files != null and !files.isEmpty()}" style="margin-top: 14px;">
+                    <p th:each="f : ${files}" style="margin: 0;">
+                        ไฟล์: <span th:text="${f.fileName}">report.pdf</span>
+                        <a th:if="${f.filePath.startsWith('http')}" th:href="${f.filePath}" target="_blank" rel="noopener">เปิดลิงก์</a>
+                        <span th:unless="${f.filePath.startsWith('http')}" class="muted" th:text="'— ' + ${f.filePath}">— นำไฟล์มาที่ร้าน</span>
+                    </p>
+                </div>
+            </section>
+        </div>
+
+        <aside class="slip-frame">
+            <div class="slip">
+                <div class="slip-head">
+                    <span class="slip-title">ใบสรุปยอด</span>
+                    <span class="slip-note" th:text="${order.customerName}">customer01</span>
+                </div>
+                <div class="slip-lines">
+                    <div class="slip-line" th:if="${order.discountAmount != null and order.discountAmount.signum() > 0}">
+                        <span>ยอดก่อนส่วนลด:</span><span class="leader"></span>
+                        <span th:text="${#numbers.formatDecimal(order.subtotal(), 1, 'COMMA', 2, 'POINT')} + ' บาท'">0.00 บาท</span>
+                    </div>
+                    <div class="slip-line discount" th:if="${order.discountAmount != null and order.discountAmount.signum() > 0}">
+                        <span th:text="'ส่วนลด' + (${order.promotionCode} != null ? ' (' + ${order.promotionCode} + ')' : '') + ':'">ส่วนลด:</span><span class="leader"></span>
+                        <span th:text="'-' + ${#numbers.formatDecimal(order.discountAmount, 1, 'COMMA', 2, 'POINT')} + ' บาท'">-0.00 บาท</span>
+                    </div>
+                </div>
+                <div class="slip-total">
+                    <span style="font-weight: 600;">รวมทั้งสิ้น</span>
+                    <span><span class="amount" th:text="${#numbers.formatDecimal(order.totalPrice, 1, 'COMMA', 2, 'POINT')}">0.00</span> <span class="unit">บาท</span></span>
+                </div>
+                <p th:if="${paymentStatus != null}" class="stamp"
+                   th:classappend="${paymentStatus.name() == 'PAID'} ? 'stamp-paid'"
+                   th:text="${paymentStatus.name() == 'UNPAID'} ? 'ยังไม่ชำระ — จ่ายที่ร้าน' : ${paymentStatus.label}">ยังไม่ชำระ — จ่ายที่ร้าน</p>
+            </div>
+        </aside>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

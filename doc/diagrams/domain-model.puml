@@ -1,0 +1,191 @@
+@startuml domain-model
+!pragma layout smetana
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+
+skinparam class {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  ArrowColor #1E293B
+}
+
+title PrintFlow — Domain Model Diagram
+
+package "User Domain" #EFF6FF {
+  class User {
+    +Long id
+    +String username
+    +String email
+    +String passwordHash
+    +Role role
+    +boolean active
+    +LocalDateTime createdAt
+    +LocalDateTime updatedAt
+  }
+
+  class UserProfile {
+    +Long id
+    +String firstName
+    +String lastName
+    +String phone
+    +String address
+  }
+
+  enum Role {
+    CUSTOMER
+    STAFF
+    ADMIN
+  }
+}
+
+package "Catalog & Pricing Domain (P2)" #F0FDF4 {
+  class PrintService {
+    +Long id
+    +String name
+    +String description
+    +BigDecimal basePrice
+    +PricingType pricingType
+    +boolean active
+  }
+
+  class AddonService {
+    +Long id
+    +String name
+    +String description
+    +BigDecimal price
+    +boolean active
+  }
+
+  class Promotion {
+    +Long id
+    +String code
+    +String description
+    +DiscountType discountType
+    +BigDecimal discountValue
+    +BigDecimal minOrderAmount
+    +LocalDateTime startDate
+    +LocalDateTime endDate
+    +boolean active
+  }
+
+  enum PricingType {
+    BLACK_WHITE
+    COLOR
+    PHOTO
+  }
+
+  enum DiscountType {
+    PERCENTAGE
+    FIXED_AMOUNT
+  }
+}
+
+package "Order Domain (P3)" #FFFBEB {
+  class PrintOrder {
+    +Long id
+    +String orderNumber
+    +Long userId
+    +OrderStatus status
+    +BigDecimal totalPrice
+    +LocalDateTime createdAt
+  }
+
+  class PrintItem {
+    +Long id
+    +Long serviceId
+    +Integer quantity
+    +BigDecimal unitPrice
+    +BigDecimal subtotal
+  }
+
+  class PrintItemAddon {
+    +Long id
+    +Long addonId
+    +BigDecimal price
+  }
+
+  class OrderPromotion {
+    +Long id
+    +Long promotionId
+    +BigDecimal discountAmount
+  }
+
+  class OrderFile {
+    +Long id
+    +String fileName
+    +String filePath
+    +String fileType
+    +Long fileSize
+  }
+
+  enum OrderStatus {
+    PENDING
+    CONFIRMED
+    PROCESSING
+    READY
+    COMPLETED
+    CANCELLED
+  }
+}
+
+package "Payment & Tracking Domain (P4)" #FEF2F2 {
+  class Payment {
+    +Long id
+    +Long orderId
+    +BigDecimal amount
+    +PaymentStatus status
+    +String slipUrl
+    +LocalDateTime paidAt
+  }
+
+  class OrderStatusHistory {
+    +Long id
+    +Long orderId
+    +OrderStatus oldStatus
+    +OrderStatus newStatus
+    +Long changedBy
+    +LocalDateTime changedAt
+  }
+
+  class Notification {
+    +Long id
+    +Long userId
+    +String title
+    +String message
+    +boolean isRead
+    +LocalDateTime createdAt
+  }
+
+  enum PaymentStatus {
+    UNPAID
+    PAID
+    REJECTED
+  }
+}
+
+' Relationships
+User "1" *-- "1" UserProfile : has
+User "1" --> "0..*" PrintOrder : places
+User "1" --> "0..*" Notification : receives
+
+PrintOrder "1" *-- "1..*" PrintItem : contains
+PrintOrder "1" *-- "0..*" OrderFile : includes
+PrintOrder "1" *-- "0..1" OrderPromotion : applies
+PrintOrder "1" *-- "1" Payment : has
+PrintOrder "1" *-- "0..*" OrderStatusHistory : tracks
+
+PrintItem "0..*" --> "1" PrintService : uses
+PrintItem "1" *-- "0..*" PrintItemAddon : configures
+PrintItemAddon "0..*" --> "1" AddonService : references
+
+OrderPromotion "0..*" --> "1" Promotion : references
+
+PrintService ..> PricingType
+Promotion ..> DiscountType
+PrintOrder ..> OrderStatus
+Payment ..> PaymentStatus
+User ..> Role
+
+@enduml

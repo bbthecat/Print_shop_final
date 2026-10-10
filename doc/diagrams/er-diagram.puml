@@ -1,0 +1,171 @@
+@startuml er-diagram
+!pragma layout smetana
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 6
+
+skinparam entity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+}
+
+title PrintFlow — Entity Relationship (ER) Diagram (13 Tables)
+
+entity "users" as users {
+  * id : BIGSERIAL <<PK>>
+  --
+  * username : VARCHAR(50) <<UQ>>
+  * email : VARCHAR(100) <<UQ>>
+  * password_hash : VARCHAR(255)
+  * role : VARCHAR(20)
+  * active : BOOLEAN
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity "user_profiles" as user_profiles {
+  * id : BIGINT <<PK, FK>>
+  --
+  * first_name : VARCHAR(50)
+  * last_name : VARCHAR(50)
+  phone_number : VARCHAR(20)
+  address : TEXT
+}
+
+entity "print_services" as print_services {
+  * id : BIGSERIAL <<PK>>
+  --
+  * name : VARCHAR(100)
+  description : TEXT
+  * base_price : NUMERIC(10,2)
+  * pricing_type : VARCHAR(20)
+  * active : BOOLEAN
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity "addon_services" as addon_services {
+  * id : BIGSERIAL <<PK>>
+  --
+  * name : VARCHAR(100)
+  description : TEXT
+  * price : NUMERIC(10,2)
+  * active : BOOLEAN
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity "promotions" as promotions {
+  * id : BIGSERIAL <<PK>>
+  --
+  * code : VARCHAR(50) <<UQ>>
+  description : TEXT
+  * discount_type : VARCHAR(20)
+  * discount_value : NUMERIC(10,2)
+  * min_order_amount : NUMERIC(10,2)
+  * start_date : TIMESTAMP
+  * end_date : TIMESTAMP
+  * active : BOOLEAN
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity "print_orders" as print_orders {
+  * id : BIGSERIAL <<PK>>
+  --
+  * order_number : VARCHAR(50) <<UQ>>
+  * user_id : BIGINT <<FK>>
+  * status : VARCHAR(30)
+  * total_price : NUMERIC(12,2)
+  * created_at : TIMESTAMP
+}
+
+entity "print_items" as print_items {
+  * id : BIGSERIAL <<PK>>
+  --
+  * order_id : BIGINT <<FK>>
+  * service_id : BIGINT <<FK>>
+  * quantity : INTEGER
+  * page_count : INTEGER
+  * unit_price : NUMERIC(12,2)
+  * subtotal : NUMERIC(12,2)
+}
+
+entity "print_item_addons" as print_item_addons {
+  * id : BIGSERIAL <<PK>>
+  --
+  * item_id : BIGINT <<FK>>
+  * addon_id : BIGINT <<FK>>
+  * price : NUMERIC(12,2)
+}
+
+entity "order_promotions" as order_promotions {
+  * id : BIGSERIAL <<PK>>
+  --
+  * order_id : BIGINT <<FK>>
+  * promotion_id : BIGINT <<FK>>
+  * discount_amount : NUMERIC(12,2)
+}
+
+entity "order_files" as order_files {
+  * id : BIGSERIAL <<PK>>
+  --
+  * order_id : BIGINT <<FK>>
+  * file_name : VARCHAR(255)
+  * file_path : VARCHAR(500)
+  * file_type : VARCHAR(100)
+  file_size : BIGINT
+}
+
+entity "payments" as payments {
+  * id : BIGSERIAL <<PK>>
+  --
+  * order_id : BIGINT <<FK, UQ>>
+  * amount : NUMERIC(12,2)
+  payment_method : VARCHAR(30)
+  * payment_status : VARCHAR(30)
+  paid_at : TIMESTAMP
+  * created_at : TIMESTAMP
+}
+
+entity "order_status_histories" as order_status_histories {
+  * id : BIGSERIAL <<PK>>
+  --
+  * order_id : BIGINT <<FK>>
+  old_status : VARCHAR(30)
+  * new_status : VARCHAR(30)
+  * changed_by : BIGINT <<FK>>
+  * changed_at : TIMESTAMP
+}
+
+entity "notifications" as notifications {
+  * id : BIGSERIAL <<PK>>
+  --
+  * user_id : BIGINT <<FK>>
+  order_id : BIGINT <<FK>>
+  * title : VARCHAR(100)
+  * message : VARCHAR(500)
+  * is_read : BOOLEAN
+  * created_at : TIMESTAMP
+}
+
+' Foreign Key Relationships
+users ||--o| user_profiles : "1 : 1"
+users ||--o{ print_orders : "1 : N"
+users ||--o{ notifications : "1 : N"
+users ||--o{ order_status_histories : "1 : N (changed_by)"
+
+print_orders ||--|{ print_items : "1 : N"
+print_orders ||--o{ order_files : "1 : N"
+print_orders ||--o{ order_promotions : "1 : N"
+print_orders ||--o| payments : "1 : 1"
+print_orders ||--o{ order_status_histories : "1 : N"
+print_orders ||--o{ notifications : "1 : N"
+
+print_services ||--o{ print_items : "1 : N"
+print_items ||--o{ print_item_addons : "1 : N"
+addon_services ||--o{ print_item_addons : "1 : N"
+
+promotions ||--o{ order_promotions : "1 : N"
+
+@enduml

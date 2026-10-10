@@ -1,0 +1,55 @@
+
+@startuml
+title Activity Diagram - Create Order
+
+start
+
+:Receive OrderCreateRequest;
+:Create PrintOrder;
+:Set order status to PENDING;
+:Set initial total price to 0;
+
+:Prepare items for validation;
+if (Promotion code provided?) then (Yes)
+    :Prepare OrderPromotion;
+else (No)
+endif
+
+:Create OrderValidationContext;
+:Execute Order Validation Chain;
+
+note right
+Validation order:
+1. ServiceAvailabilityHandler
+2. FileTypeValidationHandler
+3. QuantityValidationHandler
+4. PromotionValidityHandler
+end note
+
+if (Validation passed?) then (Yes)
+    :Save PrintOrder;
+
+    while (More order items?) is (Yes)
+        :Find print service and add-ons;
+        :Calculate item price using PricingCalculator;
+        :Set pageCount = 1;
+        :Set copyCount = max(1, quantity);
+        :Save PrintItem;
+        :Save selected add-ons;
+    endwhile (No)
+
+    if (Promotion exists?) then (Yes)
+        :Calculate promotion discount;
+    else (No)
+    endif
+
+    :Calculate and save final order total;
+    :Collect add-on IDs;
+    :Convert order to OrderResponse;
+    :Return OrderResponse;
+else (No)
+    :Raise validation error;
+endif
+
+stop
+@enduml

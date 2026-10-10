@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('หน้าแรก')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <section class="hero">
+        <div class="hero-copy">
+            <span class="pill">สั่งออนไลน์ มารับที่ร้าน</span>
+            <h1>พิมพ์งานส่งทันเวลา<br>ไม่ต้องยืนรอหน้าร้าน</h1>
+            <p>เลือกไฟล์ ระบบนับหน้าและคิดราคาให้ทันที ร้านแจ้งเตือนทุกครั้งที่งานขยับ พร้อมเมื่อไหร่ค่อยมารับ</p>
+            <div class="inline-controls">
+                <th:block sec:authorize="isAnonymous()">
+                    <a class="btn btn-large" th:href="@{/register}">สมัครแล้วสั่งพิมพ์</a>
+                    <a class="btn btn-secondary btn-large" th:href="@{/login}">เข้าสู่ระบบ</a>
+                </th:block>
+                <th:block sec:authorize="hasRole('CUSTOMER')">
+                    <a class="btn btn-large" th:href="@{/orders/create}">สั่งพิมพ์งาน</a>
+                    <a class="btn btn-secondary btn-large" th:href="@{/orders}">งานของฉัน</a>
+                </th:block>
+                <th:block sec:authorize="hasAnyRole('STAFF','ADMIN')">
+                    <a class="btn btn-large" th:href="@{/staff/orders}">ดูคิวงาน</a>
+                    <a class="btn btn-secondary btn-large" th:href="@{/staff/dashboard}">ภาพรวมวันนี้</a>
+                </th:block>
+            </div>
+        </div>
+
+        <!-- ภาพประกอบ: เครื่องพิมพ์ค่อย ๆ พ่นใบสั่งงานออกมา -->
+        <div class="hero-art" aria-hidden="true">
+            <div class="printer">
+                <div class="printer-body">
+                    <div>
+                        <span class="printer-name">PrintFlow</span>
+                        <span class="printer-inks"><i></i><i></i><i></i><i></i></span>
+                    </div>
+                    <span class="printer-led"></span>
+                    <span class="printer-slot"></span>
+                </div>
+                <div class="printer-feed">
+                    <div class="printer-paper">
+                        <div class="slip-head">
+                            <div><span class="slip-title">ใบสั่งงาน</span><div class="slip-note">ตัวอย่างการคิดราคา</div></div>
+                            <svg class="reg-mark" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="17" cy="17" r="9"></circle><circle cx="17" cy="17" r="4"></circle><path d="M17 1v32M1 17h32"></path></svg>
+                        </div>
+                        <div class="slip-lines">
+                            <div class="slip-line"><span>เอกสารสี A4 · 40 หน้า × 2</span><span class="leader"></span><span>400.00</span></div>
+                            <div class="slip-line"><span>เย็บมุม × 2</span><span class="leader"></span><span>4.00</span></div>
+                            <div class="slip-line discount"><span>ส่วนลด 10%</span><span class="leader"></span><span>−40.40</span></div>
+                        </div>
+                        <div class="slip-total">
+                            <span style="font-weight: 600;">ยอดสุทธิ</span>
+                            <span><span class="amount">363.60</span> <span class="unit">บาท</span></span>
+                        </div>
+                        <div class="color-bar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                    </div>
+                </div>
+                <div class="printer-tray"></div>
+            </div>
+        </div>
+    </section>
+
+    <ul class="highlights">
+        <li style="--c: var(--cyan);"><strong>นับหน้าให้เอง</strong><span>เลือกไฟล์ PDF ระบบนับหน้าและคิดราคาให้ทันที</span></li>
+        <li style="--c: var(--magenta);"><strong>รู้ราคาก่อนส่งงาน</strong><span>ราคาขึ้นตามหน้า ชุด งานเก็บเล่ม และโค้ดส่วนลด</span></li>
+        <li style="--c: var(--yellow);"><strong>ดูได้ว่างานถึงไหน</strong><span>แจ้งเตือนทุกครั้งที่งานขยับ พร้อมแล้วค่อยมารับ</span></li>
+    </ul>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

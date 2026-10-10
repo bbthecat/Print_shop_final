@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('จัดการผู้ใช้')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <h1>จัดการผู้ใช้</h1>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <details class="card" th:open="${openCreateForm}">
+        <summary><strong>+ สร้างบัญชีใหม่ (STAFF / ADMIN)</strong></summary>
+        <form th:action="@{/admin/users}" th:object="${form}" method="post" novalidate style="margin-top: 16px">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="username">ชื่อผู้ใช้</label>
+                    <input th:field="*{username}" type="text"
+                           th:classappend="${#fields.hasErrors('username')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></div>
+                </div>
+                <div class="form-group">
+                    <label for="email">อีเมล</label>
+                    <input th:field="*{email}" type="email"
+                           th:classappend="${#fields.hasErrors('email')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="firstName">ชื่อ</label>
+                    <input th:field="*{firstName}" type="text"
+                           th:classappend="${#fields.hasErrors('firstName')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></div>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">นามสกุล</label>
+                    <input th:field="*{lastName}" type="text"
+                           th:classappend="${#fields.hasErrors('lastName')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password">รหัสผ่าน</label>
+                    <input th:field="*{password}" type="password" autocomplete="new-password"
+                           th:classappend="${#fields.hasErrors('password')} ? 'invalid'">
+                    <div class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+                </div>
+                <div class="form-group">
+                    <label for="role">บทบาท</label>
+                    <select th:field="*{role}">
+                        <option th:each="r : ${roles}" th:value="${r}" th:text="${r.label}">พนักงาน</option>
+                    </select>
+                    <div class="field-error" th:if="${#fields.hasErrors('role')}" th:errors="*{role}"></div>
+                </div>
+            </div>
+            <button type="submit" class="btn">สร้างบัญชี</button>
+        </form>
+    </details>
+
+    <section class="card">
+        <form th:action="@{/admin/users}" method="get" class="inline-controls" style="margin-bottom: 14px">
+            <label for="roleFilter">กรองตามบทบาท:</label>
+            <select id="roleFilter" name="role">
+                <option value="">ทั้งหมด</option>
+                <option th:each="r : ${roles}" th:value="${r}" th:text="${r.label}"
+                        th:selected="${r == selectedRole}">CUSTOMER</option>
+            </select>
+            <button type="submit" class="btn btn-small btn-secondary">กรอง</button>
+        </form>
+
+        <div class="table-scroll">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>ชื่อผู้ใช้</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th>อีเมล</th>
+                <th>บทบาท</th>
+                <th>สถานะ</th>
+                <th>จัดการ</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${users.empty}">
+                <td colspan="7" class="text-center muted">ไม่พบผู้ใช้</td>
+            </tr>
+            <tr th:each="u : ${users.content}">
+                <td th:text="${u.id}">1</td>
+                <td th:text="${u.username}">somchai</td>
+                <td th:with="fullName=${#strings.trim((u.firstName ?: '') + ' ' + (u.lastName ?: ''))}"
+                    th:text="${fullName.isEmpty()} ? '-' : ${fullName}">Somchai Jaidee</td>
+                <td th:text="${u.email}">somchai@example.com</td>
+                <td>
+                    <form th:action="@{/admin/users/{id}/role(id=${u.id})}" method="post" class="inline-controls">
+                        <select name="role">
+                            <option th:each="r : ${roles}" th:value="${r}" th:text="${r.label}"
+                                    th:selected="${r == u.role}">CUSTOMER</option>
+                        </select>
+                        <button type="submit" class="btn btn-small btn-secondary">บันทึก</button>
+                    </form>
+                </td>
+                <td>
+                    <span th:if="${u.active}" class="badge badge-active">ใช้งาน</span>
+                    <span th:unless="${u.active}" class="badge badge-inactive">ปิดใช้งาน</span>
+                </td>
+                <td>
+                    <form th:action="@{/admin/users/{id}/status(id=${u.id})}" method="post" class="inline">
+                        <input type="hidden" name="active" th:value="${!u.active}">
+                        <button type="submit" class="btn btn-small"
+                                th:classappend="${u.active} ? 'btn-danger'"
+                                th:text="${u.active} ? 'ปิดใช้งาน' : 'เปิดใช้งาน'">ปิดใช้งาน</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        </div>
+
+        <div class="pagination" th:if="${users.totalPages > 1}">
+            <a th:if="${users.hasPrevious()}"
+               th:href="@{/admin/users(page=${users.number - 1}, role=${selectedRole})}">&laquo; ก่อนหน้า</a>
+            <span class="muted" th:text="'หน้า ' + ${users.number + 1} + ' / ' + ${users.totalPages}">หน้า 1 / 1</span>
+            <a th:if="${users.hasNext()}"
+               th:href="@{/admin/users(page=${users.number + 1}, role=${selectedRole})}">ถัดไป &raquo;</a>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

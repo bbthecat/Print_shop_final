@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('สั่งพิมพ์งานใหม่')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <form th:action="@{/orders/create}" th:object="${form}" method="post" class="two-col" id="orderForm">
+        <div>
+            <h1>สั่งพิมพ์งานใหม่</h1>
+            <p class="muted" style="margin: 0 0 30px; max-width: 520px;">กรอก 3 ขั้น ราคาด้านขวาเปลี่ยนตามทันที จ่ายเงินที่ร้านตอนมารับงาน</p>
+
+            <!-- 1. บริการพิมพ์ -->
+            <section class="step-section">
+                <span class="step-no">1</span>
+                <div>
+                    <h2>พิมพ์แบบไหน</h2>
+                    <div class="tile-grid" th:if="${services != null and !services.isEmpty()}">
+                        <label class="tile" th:each="svc : ${services}">
+                            <span th:switch="${svc.pricingType.name()}" aria-hidden="true">
+                                <span th:case="'BLACK_WHITE'" class="swatch swatch-bw"></span>
+                                <span th:case="'COLOR'" class="swatch swatch-color"><i></i><i></i><i></i><i></i></span>
+                                <span th:case="*" class="swatch swatch-photo"></span>
+                            </span>
+                            <input type="radio" th:field="*{serviceId}" th:value="${svc.id}" required
+                                   th:data-price="${svc.basePrice}" th:data-type="${svc.pricingType}" th:data-name="${svc.name}">
+                            <span class="tile-name" th:text="${svc.name}">Document B&amp;W (A4)</span>
+                            <span class="tile-price"
+                                  th:text="${#numbers.formatDecimal(svc.basePrice, 1, 'COMMA', 2, 'POINT')} + (${svc.pricingType.name() == 'PHOTO'} ? ' บาท / แผ่น' : ' บาท / หน้า') + (${svc.pricingType.name() == 'COLOR'} ? ' · เกิน 50 หน้าลด 10%' : '')">1.50 บาท / หน้า</span>
+                        </label>
+                    </div>
+                    <p th:if="${services == null or services.isEmpty()}" class="muted">ยังไม่มีบริการที่เปิดให้สั่ง</p>
+                    <div class="field-error" th:if="${#fields.hasErrors('serviceId')}" th:errors="*{serviceId}"></div>
+                </div>
+            </section>
+
+            <!-- 2. ไฟล์และจำนวน -->
+            <section class="step-section">
+                <span class="step-no">2</span>
+                <div>
+                    <h2>ไฟล์และจำนวน</h2>
+                    <!-- เลือกไฟล์เพื่อให้ระบบนับหน้าให้ (นับในเบราว์เซอร์ ไฟล์ไม่ถูกส่งขึ้น server เพราะ input ไม่มี name) -->
+                    <div class="file-box form-group">
+                        <span class="paper-stack" id="paperStack" aria-hidden="true">
+                            <span class="sheet sheet-back"></span>
+                            <span class="sheet sheet-front"><i></i><i></i><i></i><i style="width: 80%;"></i><i></i></span>
+                        </span>
+                        <span style="flex: 1 1 220px;">
+                            <label for="filePicker" style="display: block; font-weight: 600;">เลือกไฟล์เพื่อนับจำนวนหน้าอัตโนมัติ</label>
+                            <small id="filePickerStatus" class="muted" aria-live="polite">
+                                ไฟล์ยังไม่ถูกส่งขึ้นระบบ กรุณาแนบลิงก์ หรือนำไฟล์มาที่ร้าน
+                            </small>
+                        </span>
+                        <input type="file" id="filePicker" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pageCount">จำนวนหน้าต่อชุด</label>
+                            <input type="number" id="pageCount" th:field="*{pageCount}" min="1" required
+                                   th:classappend="${#fields.hasErrors('pageCount')} ? 'invalid' : ''">
+                            <div class="field-error" th:if="${#fields.hasErrors('pageCount')}" th:errors="*{pageCount}"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="quantity">จำนวนชุด</label>
+                            <input type="number" id="quantity" th:field="*{quantity}" min="1" required
+                                   th:classappend="${#fields.hasErrors('quantity')} ? 'invalid' : ''">
+                            <div class="field-error" th:if="${#fields.hasErrors('quantity')}" th:errors="*{quantity}"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fileName">ชื่อไฟล์เอกสาร (PDF, JPG, PNG)</label>
+                            <input type="text" id="fileName" th:field="*{fileName}" placeholder="เช่น project_final.pdf">
+                            <div class="field-error" th:if="${#fields.hasErrors('fileName')}" th:errors="*{fileName}"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="fileUrl">ลิงก์ไฟล์ (ถ้ามี)</label>
+                            <input type="url" id="fileUrl" th:field="*{fileUrl}" placeholder="https://drive.google.com/…">
+                            <div class="field-error" th:if="${#fields.hasErrors('fileUrl')}" th:errors="*{fileUrl}"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. บริการเสริม -->
+            <section class="step-section">
+                <span class="step-no">3</span>
+                <div>
+                    <h2 style="margin-bottom: 2px;">งานเก็บเล่ม</h2>
+                    <p class="muted" style="margin: 0 0 8px; font-size: .9rem;">คิดต่อชุด ไม่ใส่ก็ได้</p>
+                    <div class="price-list" th:if="${addons != null and !addons.isEmpty()}">
+                        <label class="price-row" th:each="addon : ${addons}">
+                            <input type="checkbox" th:field="*{addonIds}" th:value="${addon.id}"
+                                   th:id="'addon_' + ${addon.id}"
+                                   th:data-price="${addon.price}" th:data-name="${addon.name}">
+                            <span th:text="${addon.name}">บริการเสริม</span>
+                            <span class="leader"></span>
+                            <span th:text="${#numbers.formatDecimal(addon.price, 1, 'COMMA', 2, 'POINT')}">2.00</span>
+                        </label>
+                    </div>
+                    <p th:if="${addons == null or addons.isEmpty()}" class="muted">ไม่มีบริการเสริมในขณะนี้</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- ใบประมาณราคา + โค้ดส่วนลด -->
+        <aside style="display: flex; flex-direction: column; gap: 20px; padding-top: 8px;">
+            <div class="slip-frame">
+                <div class="slip" aria-live="polite">
+                    <div class="slip-head">
+                        <span class="slip-title">ประมาณราคา</span>
+                        <span class="slip-note">ยังไม่ได้สั่ง</span>
+                    </div>
+                    <div class="slip-lines" id="slipLines">
+                        <div class="slip-line"><span>เลือกบริการเพื่อดูราคา</span></div>
+                    </div>
+                    <div class="slip-total">
+                        <span style="font-weight: 600;">รวมทั้งสิ้น</span>
+                        <span><span class="amount" id="slipTotal">0.00</span> <span class="unit">บาท</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label for="promotionCode">โค้ดส่วนลด</label>
+                <input type="text" id="promotionCode" th:field="*{promotionCode}" placeholder="เช่น WELCOME10" style="text-transform: uppercase; letter-spacing: 1px;">
+                <small id="promoNote" class="muted">ร้านตรวจโค้ดและคิดส่วนลดจริงตอนส่งงาน</small>
+            </div>
+
+            <div th:if="${promotions != null and !promotions.isEmpty()}">
+                <p class="muted" style="margin: 0 0 6px; font-size: .9rem;">โค้ดที่ใช้ได้ตอนนี้ (คลิกเพื่อใส่) · แต่ละโค้ดใช้ได้คนละครั้ง</p>
+                <div th:each="promo : ${promotions}" class="price-row" style="cursor: default; min-height: 44px;">
+                    <button type="button" class="btn-link promo-pick" th:with="used=${usedPromotionIds != null and usedPromotionIds.contains(promo.id)}"
+                            style="font-weight: 700; letter-spacing: 1px; text-decoration: none;"
+                            th:style="${used} ? 'font-weight: 700; letter-spacing: 1px; color: var(--faint); text-decoration: line-through; cursor: not-allowed;'"
+                            th:data-code="${promo.code}"
+                            th:data-type="${promo.discountType}"
+                            th:data-value="${promo.discountValue}"
+                            th:data-min="${promo.minOrderAmount}"
+                            th:disabled="${used}"
+                            onclick="document.getElementById('promotionCode').value = this.dataset.code; document.getElementById('promotionCode').dispatchEvent(new Event('input', { bubbles: true }))"
+                            th:title="${used} ? 'คุณใช้โค้ดนี้ไปแล้ว' : 'คลิกเพื่อใช้โค้ดนี้'"
+                            th:text="${promo.code}">CODE</button>
+                    <span th:if="${usedPromotionIds != null and usedPromotionIds.contains(promo.id)}"
+                          class="badge badge-inactive">ใช้แล้ว</span>
+                    <span class="leader"></span>
+                    <span class="muted" style="font-size: .9rem;"
+                          th:text="(${promo.discountType.name() == 'PERCENTAGE'} ? 'ลด ' + ${#numbers.formatDecimal(promo.discountValue, 1, 0)} + '%' : 'ลด ' + ${#numbers.formatDecimal(promo.discountValue, 1, 2)} + ' บาท') + (${promo.minOrderAmount != null and promo.minOrderAmount.signum() > 0} ? ' · ขั้นต่ำ ' + ${#numbers.formatDecimal(promo.minOrderAmount, 1, 0)} : '')">ลด 10%</span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-block btn-large">ส่งงานพิมพ์ <span class="arrow">→</span></button>
+            <p class="muted" style="margin: -8px 0 0; font-size: .9rem;">ยกเลิกเองได้จนกว่าร้านจะรับงาน</p>
+        </aside>
+    </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script>
+    (function () {
+        const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+        const form = document.getElementById('orderForm');
+        const picker = document.getElementById('filePicker');
+        const status = document.getElementById('filePickerStatus');
+        const stack = document.getElementById('paperStack');
+        const pageCount = document.getElementById('pageCount');
+        const quantity = document.getElementById('quantity');
+        const fileName = document.getElementById('fileName');
+        const promoInput = document.getElementById('promotionCode');
+        const promoNote = document.getElementById('promoNote');
+        const slipLines = document.getElementById('slipLines');
+        const slipTotal = document.getElementById('slipTotal');
+        const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const round2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+        let pdfjsReady = null;
+
+        // ---------- ใบประมาณราคา (สูตรเดียวกับ PricingCalculator / DiscountStrategy ฝั่ง server) ----------
+        function line(label, amount, discount) {
+            const row = document.createElement('div');
+            row.className = 'slip-line' + (discount ? ' discount' : '');
+            const name = document.createElement('span');
+            name.textContent = label;
+            row.append(name);
+            if (amount !== null) {
+                const leader = document.createElement('span');
+                leader.className = 'leader';
+                const value = document.createElement('span');
+                value.textContent = (discount ? '−' : '') + fmt(amount);
+                row.append(leader, value);
+            }
+            return row;
+        }
+
+        function recalc() {
+            const service = form.querySelector('input[name="serviceId"]:checked');
+            const pages = Math.max(parseInt(pageCount.value, 10) || 0, 0);
+            const copies = Math.max(parseInt(quantity.value, 10) || 0, 0);
+            const rows = [];
+            let subtotal = 0;
+
+            if (service && pages > 0 && copies > 0) {
+                const base = parseFloat(service.dataset.price);
+                const type = service.dataset.type;
+                let print = type === 'PHOTO' ? base * copies : base * pages * copies;
+                if (type === 'COLOR' && pages > 50) {
+                    print = round2(print * 0.9);
+                }
+                subtotal += print;
+                rows.push(line(service.dataset.name + (type === 'PHOTO'
+                        ? ' × ' + copies + ' แผ่น'
+                        : ' ' + pages + ' หน้า × ' + copies + ' ชุด'), print));
+
+                form.querySelectorAll('input[name="addonIds"]:checked').forEach(function (addon) {
+                    const price = parseFloat(addon.dataset.price) * copies;
+                    subtotal += price;
+                    rows.push(line(addon.dataset.name + ' × ' + copies, price));
+                });
+
+                const code = promoInput.value.trim().toUpperCase();
+                const promo = code && Array.from(document.querySelectorAll('.promo-pick'))
+                        .find(b => b.dataset.code.toUpperCase() === code && !b.disabled);
+                if (promo) {
+                    const min = parseFloat(promo.dataset.min) || 0;
+                    if (subtotal >= min) {
+                        const value = parseFloat(promo.dataset.value);
+                        const discount = Math.min(subtotal, round2(promo.dataset.type === 'PERCENTAGE' ? subtotal * value / 100 : value));
+                        rows.push(line('โค้ด ' + promo.dataset.code, discount, true));
+                        subtotal -= discount;
+                        promoNote.textContent = 'ใช้โค้ด ' + promo.dataset.code + ' แล้ว';
+                    } else {
+                        promoNote.textContent = 'ยอดยังไม่ถึงขั้นต่ำ ' + fmt(min) + ' บาท ของโค้ดนี้';
+                    }
+                } else {
+                    promoNote.textContent = code ? 'ร้านจะตรวจโค้ดนี้ตอนส่งงาน' : 'ร้านตรวจโค้ดและคิดส่วนลดจริงตอนส่งงาน';
+                }
+            }
+
+            slipLines.replaceChildren(...(rows.length ? rows : [line('เลือกบริการเพื่อดูราคา', null)]));
+            const text = fmt(round2(subtotal));
+            if (slipTotal.textContent !== text) {
+                slipTotal.textContent = text;
+                slipTotal.classList.remove('bump');
+                void slipTotal.offsetWidth;
+                slipTotal.classList.add('bump');
+            }
+        }
+
+        form.addEventListener('change', recalc);
+        form.addEventListener('input', recalc);
+
+        // ---------- นับหน้าไฟล์ที่ลูกค้าเลือก ----------
+        function loadPdfJs() {
+            if (!pdfjsReady) {
+                pdfjsReady = new Promise(function (resolve, reject) {
+                    const script = document.createElement('script');
+                    script.src = PDFJS + 'pdf.min.js';
+                    script.onload = function () {
+                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js';
+                        resolve(window.pdfjsLib);
+                    };
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
+            return pdfjsReady;
+        }
+
+        function setPages(n, message) {
+            pageCount.value = n;
+            status.textContent = message + ' (แก้ได้ถ้าจะพิมพ์ไม่ครบทุกหน้า) — ไฟล์ยังไม่ถูกส่งขึ้นระบบ กรุณาแนบลิงก์ หรือนำไฟล์มาที่ร้าน';
+            stack.classList.remove('counted');
+            void stack.offsetWidth;
+            stack.classList.add('counted');
+            recalc();
+        }
+
+        picker.addEventListener('change', function () {
+            const file = picker.files[0];
+            if (!file) return;
+            fileName.value = file.name;
+            const name = file.name.toLowerCase();
+
+            if (/\.(jpe?g|png)$/.test(name)) {
+                setPages(1, 'ไฟล์รูปภาพ นับเป็น 1 หน้า');
+            } else if (name.endsWith('.pdf')) {
+                status.textContent = 'กำลังนับจำนวนหน้า...';
+                loadPdfJs()
+                    .then(function (pdfjsLib) { return file.arrayBuffer().then(function (data) {
+                        return pdfjsLib.getDocument({ data: data }).promise;
+                    }); })
+                    .then(function (pdf) { setPages(pdf.numPages, 'นับได้ ' + pdf.numPages + ' หน้า'); })
+                    .catch(function () {
+                        status.textContent = 'นับหน้าไม่ได้ (ไฟล์อาจเสียหรือมีรหัสผ่าน) กรุณากรอกจำนวนหน้าเอง';
+                    });
+            } else {
+                status.textContent = 'รองรับเฉพาะไฟล์ PDF, JPG และ PNG';
+            }
+        });
+
+        recalc();
+    })();
+</script>
+</body>
+</html>
