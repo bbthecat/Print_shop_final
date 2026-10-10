@@ -213,7 +213,7 @@ mvn surefire-report:report-only        # สร้างรายงาน HTML 
 - **Swagger UI:** https://printflow-ogm4.onrender.com/swagger-ui.html
 - **Hosting:** Render (Docker, Singapore) + Neon PostgreSQL (Singapore)
 - **CI/CD:** GitHub Actions — `mvn clean verify` ทุก push/PR · merge เข้า `main` (release) จะสั่ง deploy ผ่าน Render Deploy Hook
-- Branch ที่ deploy กำหนดใน `render.yaml` (ระหว่างพัฒนาใช้ `develop`, หลัง release v1.0 ใช้ `main`)
+- Production deploy จาก branch `main` (กำหนดใน `render.yaml`, ปิด auto-deploy) — Render deploy เฉพาะเมื่อ GitHub Actions รัน test บน `main` ผ่านแล้วเรียก Deploy Hook
 - หมายเหตุ: Render free plan จะหลับเมื่อไม่มีการใช้งาน ~15 นาที การเปิดครั้งแรกอาจใช้เวลา 30–60 วินาที
 
 ![Deployment Diagram](doc/diagrams/deployment.png)
