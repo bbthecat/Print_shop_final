@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(
@@ -36,6 +38,10 @@ public class PrintOrder {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    // One-to-Many ฝั่งตรงข้ามของ PrintItem.order (inverse side) ใช้อ่านอย่างเดียว ไม่สร้างคอลัมน์ใหม่
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+    private List<PrintItem> items = new ArrayList<>();
 
     protected PrintOrder() {
     }
@@ -83,5 +89,9 @@ public class PrintOrder {
 
     public void setTotalPrice(BigDecimal totalPrice) {
         this.totalPrice = totalPrice;
+    }
+
+    public List<PrintItem> getItems() {
+        return items;
     }
 }
